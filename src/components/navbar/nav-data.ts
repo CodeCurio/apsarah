@@ -1,4 +1,4 @@
-import { MASTER_CATEGORIES } from '@/lib/constants/categories'
+import { NAVBAR_CATEGORIES } from '@/lib/constants/categories'
 
 export interface MegaColumn {
   heading: string
@@ -44,7 +44,7 @@ export const navItems: NavItem[] = [
       imageTitle: "The New Season Edit",
     },
   },
-  ...MASTER_CATEGORIES.map((cat) => ({
+  ...NAVBAR_CATEGORIES.map((cat) => ({
     label: cat.name.toUpperCase(),
     isComingSoon: cat.isComingSoon,
     mega: {

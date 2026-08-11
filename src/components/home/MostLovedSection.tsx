@@ -65,14 +65,17 @@ export function MostLovedSection() {
         <div className="mostLovedGrid" ref={trackRef}>
           {products.map((prod) => {
             const isWishlisted = isInWishlist(prod.id)
+            const productSlug = prod.slug || prod.id
             return (
-              <Link key={prod.id} href={`/product/${prod.slug || prod.id}`} className="mostLovedCard group">
-                <div className="mostLovedImageArch">
-                  <img src={prod.images[0]} alt={prod.name} loading="lazy" />
-                  
-                  {prod.discountPercent > 0 && (
-                    <span className="mostLovedBadge">SALE • {prod.discountPercent}% OFF</span>
-                  )}
+              <Link key={prod.id} href={`/products/${productSlug}`} className="mostLovedCard group">
+                <div className="relative w-full">
+                  <div className="mostLovedImageArch">
+                    <img src={prod.images[0]} alt={prod.name} loading="lazy" />
+                    
+                    {prod.discountPercent > 0 && (
+                      <span className="mostLovedBadge">SALE • {prod.discountPercent}% OFF</span>
+                    )}
+                  </div>
 
                   <button
                     type="button"

@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/client'
 /**
  * Initiates OAuth sign-in flow for Google or Facebook
  */
-export async function signInWithOAuth(provider: 'google' | 'facebook') {
+export async function signInWithOAuth(provider: 'google' | 'facebook', redirectToUrl?: string) {
   const supabase = createClient()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: redirectToUrl || `${window.location.origin}/auth/callback`,
     },
   })
   return { data, error }
@@ -29,7 +29,7 @@ export async function signInWithEmail(email: string, password: string) {
 /**
  * Signs up a new user with email and password
  */
-export async function signUpWithEmail(email: string, password: string, fullName?: string) {
+export async function signUpWithEmail(email: string, password: string, fullName?: string, redirectToUrl?: string) {
   const supabase = createClient()
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -38,10 +38,25 @@ export async function signUpWithEmail(email: string, password: string, fullName?
       data: {
         full_name: fullName || '',
       },
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      emailRedirectTo: redirectToUrl || `${window.location.origin}/auth/callback`,
     },
   })
   return { data, error }
+}
+
+/**
+ * Resends signup email confirmation link to specified email address
+ */
+export async function resendConfirmationEmail(email: string) {
+  const supabase = createClient()
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+  return { error }
 }
 
 /**

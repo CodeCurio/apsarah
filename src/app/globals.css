@@ -1194,9 +1194,9 @@ body {
 
 .mostLovedWishlist {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 30;
+  top: 18px;
+  right: 18px;
+  z-index: 40;
   width: 36px;
   height: 36px;
   border: 0;
@@ -1206,7 +1206,7 @@ body {
   display: grid;
   place-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 

@@ -405,22 +405,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
               </p>
             </div>
 
-            {/* Prominent SET INCLUSIONS Banner */}
-            {inclusionsText && (
-              <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-gradient-to-br from-[#FAF2EB] to-[#F3E6DA] border border-[#DCAE8A]/70 text-[#2B1713] shadow-xs">
-                <div className="w-9 h-9 rounded-xl bg-[#8F1020] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                  <Package className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-extrabold text-[#8F1020] uppercase tracking-widest block">
-                    What You Receive in The Box (Set Inclusions)
-                  </span>
-                  <p className="text-xs sm:text-sm font-bold text-slate-900 mt-1 leading-snug">
-                    {inclusionsText}
-                  </p>
-                </div>
-              </div>
-            )}
 
             {/* Live Scarcity & Social Proof Banner */}
             <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 font-bold">
@@ -622,12 +606,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
                 </button>
                 {specsOpen && (
                   <div className="p-4 pt-0 text-xs text-slate-700 grid grid-cols-2 gap-3 border-t border-slate-100">
-                    {inclusionsText && (
-                      <div className="col-span-2 p-2.5 bg-rose-50 rounded-xl text-[#8F1020] border border-rose-100 mb-1">
-                        <span className="font-extrabold block text-[10px] uppercase tracking-wider text-rose-900">Set Inclusions / Box Contents:</span>
-                        <span className="font-bold text-slate-900 text-xs">{inclusionsText}</span>
-                      </div>
-                    )}
                     <div className="p-2 bg-slate-50 rounded-lg"><span className="font-bold text-slate-500 block text-[10px]">FABRIC</span> <span className="font-semibold text-slate-900">{product.fabric}</span></div>
                     <div className="p-2 bg-slate-50 rounded-lg"><span className="font-bold text-slate-500 block text-[10px]">FIT & SILHOUETTE</span> <span className="font-semibold text-slate-900">{product.fit}</span></div>
                     <div className="p-2 bg-slate-50 rounded-lg"><span className="font-bold text-slate-500 block text-[10px]">CRAFT WORK</span> <span className="font-semibold text-slate-900">{product.pattern}</span></div>

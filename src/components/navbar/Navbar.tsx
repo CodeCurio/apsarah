@@ -261,7 +261,12 @@ export function Navbar() {
             >
               <X className="w-5 h-5" />
             </button>
-            <AuthForm onSuccess={() => setAuthModalOpen(false)} />
+            <AuthForm
+              onSuccess={() => {
+                setAuthModalOpen(false)
+                router.push('/account')
+              }}
+            />
           </div>
         </div>
       )}

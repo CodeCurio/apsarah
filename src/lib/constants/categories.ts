@@ -111,6 +111,23 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     ],
   },
   {
+    id: 'cat-sarees',
+    name: 'Sarees',
+    slug: 'sarees',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=88',
+    subtitle: 'TIMELESS DRAPES',
+    description: 'Handcrafted Banarasi, Kanjivaram, and contemporary sarees woven with heritage artistry.',
+    subcategories: [
+      'Banarasi Silk Sarees',
+      'Kanjivaram Sarees',
+      'Chiffon Sarees',
+      'Organza Sarees',
+      'Cotton Sarees',
+      'Georgette Sarees',
+      'Tussar Silk Sarees',
+    ],
+  },
+  {
     id: 'cat-jewellery',
     name: 'Jewellery',
     slug: 'jewellery',
@@ -142,3 +159,8 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     ],
   },
 ]
+
+// Navbar-specific categories: excludes Jewellery and Fragrance
+export const NAVBAR_CATEGORIES = MASTER_CATEGORIES.filter(
+  (cat) => cat.slug !== 'jewellery' && cat.slug !== 'fragrance'
+)

@@ -72,6 +72,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
+    if (typeof window !== 'undefined') {
+      window.location.href = '/'
+    }
   }
 
   const isAdmin = profile?.role === 'admin'
