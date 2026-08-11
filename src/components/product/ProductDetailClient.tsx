@@ -24,6 +24,7 @@ import {
   X,
   Lock,
   MessageCircle,
+  AlertTriangle,
 } from 'lucide-react'
 import { Product, getProductsStore } from '@/lib/products-store'
 import { useCart } from '@/context/CartContext'
@@ -166,12 +167,24 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     }
   }
 
+  const selectedSizeObj = product.sizes.find((s) => s.size === selectedSize)
+  const isSelectedSizeAvailable = (selectedSizeObj?.stock ?? 0) > 0
+  const remainingStock = selectedSizeObj?.stock ?? 0
+
   const handleAddToCart = () => {
+    if (!isSelectedSizeAvailable) {
+      toastError(`Sorry, size "${selectedSize}" is currently out of stock!`)
+      return
+    }
     addItem(product, 1, selectedSize)
     toastSuccess(`Added "${product.name}" (${selectedSize}) to bag`)
   }
 
   const handleBuyNow = () => {
+    if (!isSelectedSizeAvailable) {
+      toastError(`Sorry, size "${selectedSize}" is currently out of stock!`)
+      return
+    }
     addItem(product, 1, selectedSize)
     router.push('/checkout')
   }
@@ -477,21 +490,46 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
               </div>
             </div>
 
+            {/* Stock Level Warning Badges */}
+            {isSelectedSizeAvailable && remainingStock > 0 && remainingStock <= 5 && (
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3.5 py-2.5 rounded-xl animate-pulse">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>🔥 Only {remainingStock} left in stock for size &quot;{selectedSize}&quot; — Order soon!</span>
+              </div>
+            )}
+
+            {!isSelectedSizeAvailable && (
+              <div className="flex items-center gap-2 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 px-3.5 py-2.5 rounded-xl">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Size &quot;{selectedSize}&quot; is currently OUT OF STOCK</span>
+              </div>
+            )}
+
             {/* Action Button Pair: Add to Bag + Buy Now */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               <button
                 type="button"
+                disabled={!isSelectedSizeAvailable}
                 onClick={handleAddToCart}
-                className="w-full py-4 px-6 rounded-2xl bg-[#8F1020] text-white font-serif font-bold text-base hover:bg-[#720C18] transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className={`w-full py-4 px-6 rounded-2xl font-serif font-bold text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
+                  isSelectedSizeAvailable
+                    ? 'bg-[#8F1020] text-white hover:bg-[#720C18] active:scale-95 cursor-pointer hover:shadow-xl'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+                }`}
               >
                 <ShoppingBag className="w-5 h-5" />
-                <span>ADD TO BAG</span>
+                <span>{isSelectedSizeAvailable ? 'ADD TO BAG' : 'OUT OF STOCK'}</span>
               </button>
 
               <button
                 type="button"
+                disabled={!isSelectedSizeAvailable}
                 onClick={handleBuyNow}
-                className="w-full py-4 px-6 rounded-2xl bg-[#2B1713] text-white font-serif font-bold text-base hover:bg-[#1a0c09] transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-95 border border-slate-800"
+                className={`w-full py-4 px-6 rounded-2xl font-serif font-bold text-base transition-all shadow-lg flex items-center justify-center gap-2 border ${
+                  isSelectedSizeAvailable
+                    ? 'bg-[#2B1713] text-white hover:bg-[#1a0c09] active:scale-95 cursor-pointer border-slate-800 hover:shadow-xl'
+                    : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed opacity-60'
+                }`}
               >
                 <span>BUY NOW</span>
               </button>

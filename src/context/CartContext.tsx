@@ -90,15 +90,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback((product: Product, quantity = 1, size = '') => {
     setItems(prev => {
-      const existing = prev.find(i => i.product.id === product.id && i.selectedSize === size)
+      const selectedSize = size || product.sizes?.find(s => s.stock > 0)?.size || product.sizes?.[0]?.size || 'M'
+      const sizeObj = product.sizes?.find(s => s.size === selectedSize)
+      const maxAvailable = sizeObj !== undefined ? sizeObj.stock : 999
+
+      if (maxAvailable <= 0) return prev
+
+      const existing = prev.find(i => i.product.id === product.id && i.selectedSize === selectedSize)
+      const currentQty = existing ? existing.quantity : 0
+      const allowedQty = Math.min(currentQty + quantity, maxAvailable)
+
       if (existing) {
         return prev.map(i =>
-          i.product.id === product.id && i.selectedSize === size
-            ? { ...i, quantity: i.quantity + quantity }
+          i.product.id === product.id && i.selectedSize === selectedSize
+            ? { ...i, quantity: allowedQty }
             : i
         )
       }
-      return [...prev, { product, quantity, selectedSize: size }]
+      return [...prev, { product, quantity: Math.min(quantity, maxAvailable), selectedSize }]
     })
     setIsOpen(true)
   }, [])
@@ -110,11 +119,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const updateQuantity = useCallback((productId: string, size: string, quantity: number) => {
     if (quantity < 1) return
     setItems(prev =>
-      prev.map(i =>
-        i.product.id === productId && i.selectedSize === size
-          ? { ...i, quantity }
-          : i
-      )
+      prev.map(i => {
+        if (i.product.id === productId && i.selectedSize === size) {
+          const sizeObj = i.product.sizes?.find(s => s.size === size)
+          const maxAvailable = sizeObj !== undefined ? sizeObj.stock : 999
+          return { ...i, quantity: Math.min(quantity, maxAvailable) }
+        }
+        return i
+      })
     )
   }, [])
 

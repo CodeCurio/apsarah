@@ -119,11 +119,14 @@ export function CartDrawer() {
             <>
               {/* Cart Items List */}
               <div className="p-4 space-y-4">
-                {items.map(item => {
+                {items.map((item) => {
                   const colorName = item.product.colors?.[0]?.name || 'Standard'
                   const displaySize = item.selectedSize || item.product.sizes?.[0]?.size || 'M'
                   const itemOldPrice = item.product.oldPrice || Math.round(item.product.price * 1.6)
                   const itemDiscount = item.product.discountPercent || Math.round(((itemOldPrice - item.product.price) / itemOldPrice) * 100)
+                  const sizeObj = item.product.sizes?.find((s) => s.size === displaySize)
+                  const maxStock = sizeObj !== undefined ? sizeObj.stock : 999
+                  const isAtMax = item.quantity >= maxStock
 
                   return (
                     <div
@@ -180,7 +183,14 @@ export function CartDrawer() {
                           </div>
                         </div>
 
-                        {/* Bottom Actions: Qty Control */}
+                        {/* Stock Limit Warning */}
+                        {isAtMax && maxStock < 999 && (
+                          <div className="text-[10px] font-bold text-amber-700 mt-1">
+                            ⚠️ Max stock reached ({maxStock} available)
+                          </div>
+                        )}
+
+                        {/* Bottom Actions: Qty Control & Delete */}
                         <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
                           <div className="flex items-center border border-slate-300 rounded-lg bg-slate-50/50 overflow-hidden">
                             <button
@@ -196,8 +206,13 @@ export function CartDrawer() {
                             </span>
                             <button
                               type="button"
+                              disabled={isAtMax}
                               onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity + 1)}
-                              className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-200 hover:text-black transition-colors"
+                              className={`w-7 h-7 flex items-center justify-center transition-colors ${
+                                isAtMax
+                                  ? 'text-slate-300 bg-slate-100 cursor-not-allowed'
+                                  : 'text-slate-600 hover:bg-slate-200 hover:text-black'
+                              }`}
                               aria-label="Increase quantity"
                             >
                               <Plus className="w-3 h-3" />

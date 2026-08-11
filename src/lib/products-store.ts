@@ -707,6 +707,48 @@ export async function deleteProduct(id: string): Promise<void> {
   writeCache(cached.filter((p) => p.id !== id))
 }
 
+/** Decrement stock for ordered product sizes in Supabase apsarah_products table. */
+export async function decrementProductStock(
+  orderedItems: Array<{ productId: string; size: string; quantity: number }>
+): Promise<void> {
+  try {
+    const supabase = getSupabase()
+
+    for (const item of orderedItems) {
+      if (!item.productId || !item.size) continue
+
+      const { data: prod, error } = await supabase
+        .from('apsarah_products')
+        .select('id, sizes')
+        .eq('id', item.productId)
+        .single()
+
+      if (error || !prod || !Array.isArray(prod.sizes)) continue
+
+      let updated = false
+      const updatedSizes = prod.sizes.map((s: { size: string; stock: number }) => {
+        if (s.size === item.size) {
+          updated = true
+          return { ...s, stock: Math.max(0, (s.stock || 0) - item.quantity) }
+        }
+        return s
+      })
+
+      if (updated) {
+        await supabase
+          .from('apsarah_products')
+          .update({ sizes: updatedSizes })
+          .eq('id', item.productId)
+      }
+    }
+
+    // Refresh products cache after stock update
+    await fetchProducts().catch(() => {})
+  } catch (err) {
+    console.error('Failed to decrement product stock:', err)
+  }
+}
+
 // Legacy sync helpers (for places that haven't migrated to async yet)
 export function getProductsStore(): Product[] {
   return readCache() ?? initialProducts

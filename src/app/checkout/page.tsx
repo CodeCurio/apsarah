@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { PromoCouponWidget } from '@/components/cart/PromoCouponWidget'
 import { AuthForm } from '@/components/auth/AuthModal'
 import { saveUserAddress } from '@/lib/address-utils'
+import { decrementProductStock } from '@/lib/products-store'
 
 export default function CheckoutPage() {
   const { items, itemCount, subtotal, discount, shippingCost, total, appliedCoupon, clearCart } = useCart()
@@ -124,7 +125,7 @@ export default function CheckoutPage() {
   // Handle shipping step submission
   const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!fullName || !email || !phone || !addressLine1 || !city || !pincode) {
+    if (!fullName || !email || !phone || !addressLine1 || !city || !state || !pincode) {
       toastError('Please fill in all required shipping fields')
       return
     }
@@ -256,7 +257,16 @@ export default function CheckoutPage() {
     const { error: itemsError } = await supabase.from('order_items').insert(orderItemsData)
     if (itemsError) console.error('Order items insert error:', itemsError)
 
-    // 3. Trigger Order Confirmation Emails via Resend
+    // 3. Decrement Inventory Stock in Supabase for each ordered item/size
+    await decrementProductStock(
+      items.map((i) => ({
+        productId: i.product.id,
+        size: i.selectedSize,
+        quantity: i.quantity,
+      }))
+    )
+
+    // 4. Trigger Order Confirmation Emails via Resend
     fetch('/api/emails/send-order-confirmation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -275,7 +285,7 @@ export default function CheckoutPage() {
       }),
     }).catch((emailErr) => console.error('Failed to trigger order confirmation email:', emailErr))
 
-    // 4. Clear cart & redirect to confirmation
+    // 5. Clear cart & redirect to confirmation
     clearCart()
     router.push(`/checkout/success?order=${order.order_number || order.id}`)
   }
@@ -291,6 +301,35 @@ export default function CheckoutPage() {
     setProcessing(true)
 
     try {
+      // Pre-flight Stock Validation Check against Live Supabase Inventory
+      const supabase = createClient()
+      for (const item of items) {
+        const { data: prod } = await supabase
+          .from('apsarah_products')
+          .select('id, name, sizes')
+          .eq('id', item.product.id)
+          .single()
+
+        if (prod && Array.isArray(prod.sizes)) {
+          const sizeObj = prod.sizes.find((s: any) => s.size === item.selectedSize)
+          const dbStock = sizeObj ? Number(sizeObj.stock) || 0 : 0
+
+          if (dbStock <= 0) {
+            toastError(`Out of Stock: "${item.product.name}" (${item.selectedSize}) is no longer available.`)
+            setProcessing(false)
+            return
+          }
+
+          if (item.quantity > dbStock) {
+            toastError(
+              `Stock Exceeded: "${item.product.name}" (${item.selectedSize}) only has ${dbStock} available in stock.`
+            )
+            setProcessing(false)
+            return
+          }
+        }
+      }
+
       if (paymentMethod === 'cod') {
         // COD Order
         await saveOrderToDatabase('pending', 'COD-' + Date.now(), 'cod')
