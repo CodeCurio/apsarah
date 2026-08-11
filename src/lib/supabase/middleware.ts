@@ -28,7 +28,17 @@ export async function updateSession(request: NextRequest) {
   )
 
   // refreshing the auth token
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  // Server-side guard for Admin Panel routes (except /admin/login)
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+    if (!user) {
+      const loginUrl = new URL('/admin/login', request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
 
   return supabaseResponse
 }

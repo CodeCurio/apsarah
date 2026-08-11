@@ -1,9 +1,22 @@
 'use client'
 
 import React from 'react'
-import { Bell, Search, UserCheck, ShieldAlert } from 'lucide-react'
+import { Bell, Search, UserCheck, ShieldAlert, LogOut } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { useRouter } from 'next/navigation'
 
 export function AdminHeader() {
+  const { user, profile, signOut } = useAuth()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/admin/login')
+  }
+
+  const adminName = profile?.full_name || user?.user_metadata?.full_name || 'Store Admin'
+  const adminEmail = user?.email || 'admin@apsarah.in'
+
   return (
     <header className="h-16 bg-[#fffaf5] border-b border-[#e2d4c7] px-6 flex items-center justify-between sticky top-0 z-40">
       {/* Search */}
@@ -40,10 +53,25 @@ export function AdminHeader() {
             <UserCheck className="w-4 h-4" />
           </div>
           <div className="hidden sm:block text-left">
-            <div className="text-xs font-bold text-[#2b1713]">Store Admin</div>
-            <div className="text-[10px] text-slate-500">admin@apsarah.in</div>
+            <div className="text-xs font-bold text-[#2b1713] truncate max-w-[140px]">
+              {adminName}
+            </div>
+            <div className="text-[10px] text-slate-500 truncate max-w-[140px]">
+              {adminEmail}
+            </div>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <button
+          type="button"
+          onClick={handleSignOut}
+          title="Sign Out of Admin"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8f1020]/10 hover:bg-[#8f1020] text-[#8f1020] hover:text-white text-xs font-medium border border-[#8f1020]/20 transition-all duration-200"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Sign Out</span>
+        </button>
       </div>
     </header>
   )
