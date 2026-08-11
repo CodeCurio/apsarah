@@ -135,12 +135,11 @@ export function Footer() {
           <div className="apsFooterCol">
             <h4>CUSTOMER CARE</h4>
             <ul>
-              <li><Link href="#orders">Track Your Order</Link></li>
-              <li><Link href="#shipping">Shipping & Delivery</Link></li>
-              <li><Link href="#returns">Returns & Exchanges</Link></li>
-              <li><Link href="#size">Size Guide</Link></li>
-              <li><Link href="#faq">Frequently Asked Questions</Link></li>
-              <li><Link href="#contact">Contact Us</Link></li>
+              <li><Link href="/account">Track Your Order</Link></li>
+              <li><Link href="/shipping-policy">Shipping & Delivery</Link></li>
+              <li><Link href="/returns-policy">Returns & Exchanges</Link></li>
+              <li><Link href="/faq">Frequently Asked Questions</Link></li>
+              <li><Link href="/contact">Contact Us</Link></li>
             </ul>
           </div>
 
@@ -148,11 +147,11 @@ export function Footer() {
           <div className="apsFooterCol">
             <h4>ABOUT APSARAH</h4>
             <ul>
-              <li><Link href="#story">Our Story</Link></li>
-              <li><Link href="#artisans">Artisans & Craftsmanship</Link></li>
-              <li><Link href="#sustainability">Sustainable Luxury</Link></li>
-              <li><Link href="#press">Press & Media</Link></li>
-              <li><Link href="#stores">Boutique Locations</Link></li>
+              <li><Link href="/about">About Us</Link></li>
+              <li><Link href="/about">Our Story & Heritage</Link></li>
+              <li><Link href="/about">Artisans & Craftsmanship</Link></li>
+              <li><Link href="/about">Sustainable Luxury</Link></li>
+              <li><Link href="/contact">Design Studio</Link></li>
             </ul>
           </div>
         </div>
@@ -161,9 +160,9 @@ export function Footer() {
         <div className="apsFooterBottom">
           <span>&copy; {new Date().getFullYear()} Apsarah. All Rights Reserved.</span>
           <div className="apsLegalLinks">
-            <Link href="#privacy">Privacy Policy</Link>
-            <Link href="#terms">Terms of Service</Link>
-            <Link href="#shipping">Shipping Policy</Link>
+            <Link href="/privacy-policy">Privacy Policy</Link>
+            <Link href="/terms">Terms of Service</Link>
+            <Link href="/shipping-policy">Shipping Policy</Link>
           </div>
           <button type="button" onClick={scrollToTop} className="apsScrollTop" aria-label="Scroll to top">
             <ChevronUp className="w-4 h-4" />
