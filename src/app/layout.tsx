@@ -22,6 +22,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Apsarah — Premium Indian Wear",
   description: "Contemporary Indian fashion shaped by heritage, craftsmanship and effortless elegance.",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
