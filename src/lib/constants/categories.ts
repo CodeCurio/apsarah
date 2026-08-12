@@ -149,3 +149,31 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
 export const NAVBAR_CATEGORIES = MASTER_CATEGORIES.filter(
   (cat) => cat.slug !== 'jewellery' && cat.slug !== 'fragrance'
 )
+
+/** Returns array of equivalent category name aliases for flexible matching */
+export function getCategoryAliases(categoryName: string): string[] {
+  if (!categoryName) return []
+  const lower = categoryName.trim().toLowerCase()
+
+  if (lower === 'suit sets' || lower === 'kurta sets' || lower === 'suits') {
+    return ['Suit Sets', 'Kurta Sets']
+  }
+  if (lower === 'kurtis & tops' || lower === 'kurtas & tops' || lower === 'kurtis' || lower === 'kurtas') {
+    return ['Kurtis & Tops', 'Kurtas & Tops']
+  }
+  if (lower === 'co-ord sets' || lower === 'co-ords' || lower === 'co-ord') {
+    return ['Co-ord Sets']
+  }
+  if (lower === 'lehengas' || lower === 'lehenga') {
+    return ['Lehengas']
+  }
+  if (lower === 'sarees' || lower === 'saree') {
+    return ['Sarees']
+  }
+  if (lower === 'dresses' || lower === 'dress') {
+    return ['Dresses']
+  }
+
+  return [categoryName]
+}
+

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Filter, X, Plus, Minus, RotateCcw, Check } from 'lucide-react'
 import { Product, fetchProducts, initialProducts } from '@/lib/products-store'
 import { ProductCard } from '@/components/shop/ProductCard'
-import { MASTER_CATEGORIES } from '@/lib/constants/categories'
+import { MASTER_CATEGORIES, getCategoryAliases } from '@/lib/constants/categories'
 
 // ─── Accordion Filter Section ────────────────────────────────────────────────
 function FilterSection({
@@ -161,7 +161,7 @@ export function ShopPageClient() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
     const cat = searchParams?.get('category')
     if (cat && cat !== 'All' && cat !== 'New In' && cat !== 'NEW IN') {
-      const match = MASTER_CATEGORIES.find((m) => m.name.toLowerCase() === cat.toLowerCase())
+      const match = MASTER_CATEGORIES.find((m) => m.name.toLowerCase() === cat.toLowerCase() || getCategoryAliases(m.name).map((a) => a.toLowerCase()).includes(cat.toLowerCase()))
       return [match ? match.name : cat]
     }
     return []
@@ -171,13 +171,13 @@ export function ShopPageClient() {
   useEffect(() => {
     const cat = searchParams?.get('category') || ''
     if (cat && cat !== 'All' && cat !== 'New In' && cat !== 'NEW IN') {
-      const match = MASTER_CATEGORIES.find((m) => m.name.toLowerCase() === cat.toLowerCase())
+      const match = MASTER_CATEGORIES.find((m) => m.name.toLowerCase() === cat.toLowerCase() || getCategoryAliases(m.name).map((a) => a.toLowerCase()).includes(cat.toLowerCase()))
       setSelectedCategories([match ? match.name : cat])
     }
     const q = searchParams?.get('q') || searchParams?.get('sub') || ''
     setUrlQueryFilter(q)
   }, [searchParams])
-  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All')
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>(() => searchParams?.get('price') || 'All')
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedColorFamilies, setSelectedColorFamilies] = useState<string[]>([])
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([])
@@ -206,9 +206,13 @@ export function ShopPageClient() {
   
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Unstitched']
 
-  // Toggle helpers
-  const toggleArr = (arr: string[], val: string, set: React.Dispatch<React.SetStateAction<string[]>>) =>
+  const [hasUserInteracted, setHasUserInteracted] = useState(false)
+
+  // Toggle helpers with interaction tracking
+  const toggleArr = (arr: string[], val: string, set: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setHasUserInteracted(true)
     set(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val])
+  }
 
   // Helper function to check if a product matches any keyword in a list of selected filter option labels
   const matchesFilterGroup = (product: Product, selectedLabels: string[], groupOptions: FilterOption[]): boolean => {
@@ -245,7 +249,10 @@ export function ShopPageClient() {
     return products
       .filter((item) => {
         // 1. Category check
-        if (selectedCategories.length > 0 && !selectedCategories.includes(item.category)) return false
+        if (selectedCategories.length > 0) {
+            const allowedCategoryAliases = selectedCategories.flatMap((c) => [c, ...getCategoryAliases(c)])
+            if (!allowedCategoryAliases.includes(item.category)) return false
+        }
 
         // 2. Price check
         if (selectedPriceRange === 'under-2000' && item.price >= 2000) return false
@@ -324,6 +331,7 @@ export function ShopPageClient() {
     setSelectedOccasions([])
     setSelectedPatterns([])
     setUrlQueryFilter('')
+    setHasUserInteracted(false)
   }
 
   const activeCount =
@@ -380,7 +388,10 @@ export function ShopPageClient() {
         {priceRanges.map((pr) => (
           <div
             key={pr.value}
-            onClick={() => setSelectedPriceRange(pr.value)}
+            onClick={() => {
+              setHasUserInteracted(true)
+              setSelectedPriceRange(pr.value)
+            }}
             className="flex items-center justify-between py-1.5 cursor-pointer select-none group rounded-md hover:bg-[#F0E6DC]/30 px-1 transition-colors"
           >
             <div className="flex items-center gap-2.5">
@@ -562,14 +573,14 @@ export function ShopPageClient() {
         </div>
 
         {/* Active Filter Chips Bar */}
-        {activeCount > 0 && (
+        {hasUserInteracted && activeCount > 0 && (
           <div className="bg-[#FAF6F0] border-t border-[#e2d4c7]/50 py-2.5 px-4">
             <div className="max-w-7xl mx-auto flex items-center gap-2 flex-wrap text-xs">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#8f1020] mr-1">Active Filters:</span>
 
-              {urlQueryFilter && (
+              {urlQueryFilter && !selectedCategories.some((c) => c.toLowerCase() === urlQueryFilter.toLowerCase()) && (
                 <span className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
-                  Filter: <strong className="text-[#8f1020]">{urlQueryFilter}</strong>
+                  Query: <strong className="text-[#8f1020]">{urlQueryFilter}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => setUrlQueryFilter('')} />
                 </span>
               )}

@@ -10,6 +10,7 @@ export interface PriceTier {
   description: string
   image: string
   badge: string
+  filterValue: string
 }
 
 export const priceTiers: PriceTier[] = [
@@ -19,6 +20,7 @@ export const priceTiers: PriceTier[] = [
     description: "Effortless everyday ethnic pieces for quick styling",
     image: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80",
     badge: "BUDGET FAVORITES",
+    filterValue: "under-2000",
   },
   {
     price: "UNDER ₹1,999",
@@ -26,20 +28,23 @@ export const priceTiers: PriceTier[] = [
     description: "Versatile kurta sets and modern co-ord silhouettes",
     image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
     badge: "MOST POPULAR",
+    filterValue: "under-2000",
   },
   {
-    price: "UNDER ₹2,999",
+    price: "UNDER ₹3,500",
     label: "SIGNATURE EDIT",
     description: "Elevated handcrafted suits with detailed embroidery",
     image: "https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?auto=format&fit=crop&w=800&q=80",
     badge: "PREMIUM FINDS",
+    filterValue: "2000-3500",
   },
   {
-    price: "UNDER ₹3,999",
+    price: "UNDER ₹5,000",
     label: "CELEBRATION EDIT",
     description: "Statement festive wear and regal Anarkali sets",
     image: "https://images.unsplash.com/photo-1610189012906-4c0aa9b9781e?auto=format&fit=crop&w=800&q=80",
     badge: "LUXURY EDIT",
+    filterValue: "3500-5000",
   },
 ]
 
@@ -56,7 +61,7 @@ export function ShopByPrice() {
 
       <div className="priceEditGrid">
         {priceTiers.map((tier) => (
-          <Link href="/shop" key={tier.price} className="priceCard">
+          <Link href={`/shop?price=${encodeURIComponent(tier.filterValue)}`} key={tier.price} className="priceCard">
             <img src={tier.image} alt={tier.price} loading="lazy" />
             <div className="priceCardTint" />
 
