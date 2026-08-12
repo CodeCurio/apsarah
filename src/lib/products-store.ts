@@ -591,21 +591,34 @@ export const initialProducts: Product[] = [
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-/** Fetch all products from Supabase. Falls back to cache, then initialProducts. */
+/** Fetch all products from Supabase/API. Falls back to cache, then initialProducts. */
 export async function fetchProducts(): Promise<Product[]> {
   try {
+    // 1. Try server API route first for authenticated/fresh DB state
+    const res = await fetch('/api/admin/products', { cache: 'no-store' }).catch(() => null)
+    if (res && res.ok) {
+      const json = await res.json()
+      if (json.products && json.products.length > 0) {
+        const products = json.products.map(rowToProduct)
+        writeCache(products)
+        return products
+      }
+    }
+
+    // 2. Direct Supabase fallback
     const supabase = getSupabase()
     const { data, error } = await supabase
       .from('apsarah_products')
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) throw error
-    if (!data || data.length === 0) throw new Error('empty')
+    if (!error && data && data.length > 0) {
+      const products = data.map(rowToProduct)
+      writeCache(products)
+      return products
+    }
 
-    const products = data.map(rowToProduct)
-    writeCache(products)
-    return products
+    throw new Error('No DB data returned')
   } catch {
     // Try cache first
     const cached = readCache()
@@ -633,75 +646,117 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
   }
 }
 
-/** Insert a new product into Supabase. */
+/** Insert a new product into Supabase via API route. */
 export async function addProduct(newProduct: Omit<Product, 'id'> & { id?: string }): Promise<Product> {
-  const row = productToRow(newProduct)
-  const supabase = getSupabase()
+  // 1. Call server API endpoint
+  const response = await fetch('/api/admin/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newProduct),
+  })
 
-  const { data, error } = await supabase
-    .from('apsarah_products')
-    .insert(row)
-    .select()
-    .single()
+  const resData = await response.json().catch(() => ({}))
 
-  if (error) throw error
+  if (!response.ok || !resData.success || !resData.product) {
+    // Direct Supabase fallback if API route fails
+    console.warn('API route failed, trying direct Supabase insert...', resData.error)
+    const row = productToRow(newProduct)
+    const supabase = getSupabase()
+    const { data, error } = await supabase
+      .from('apsarah_products')
+      .insert(row)
+      .select()
+      .single()
 
-  const product = rowToProduct(data)
+    if (error) {
+      throw new Error(resData.error || error.message || 'Failed to save product in database.')
+    }
 
-  // Update cache
+    const product = rowToProduct(data)
+    const cached = readCache() ?? initialProducts
+    writeCache([product, ...cached.filter((p) => p.id !== product.id)])
+    return product
+  }
+
+  const createdProduct = rowToProduct(resData.product)
+
+  // Update local cache with saved product from server
   const cached = readCache() ?? initialProducts
-  writeCache([product, ...cached.filter((p) => p.id !== product.id)])
+  writeCache([createdProduct, ...cached.filter((p) => p.id !== createdProduct.id)])
 
-  return product
+  return createdProduct
 }
 
-/** Update an existing product in Supabase. */
+/** Update an existing product in Supabase via API route. */
 export async function updateProduct(id: string, fields: Partial<Product>): Promise<Product | null> {
-  const supabase = getSupabase()
+  const response = await fetch('/api/admin/products', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...fields }),
+  })
 
-  // Build partial row (only send changed fields)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updates: Record<string, any> = {}
-  if (fields.name !== undefined) updates.name = fields.name
-  if (fields.slug !== undefined) updates.slug = fields.slug
-  if (fields.category !== undefined) updates.category = fields.category
-  if (fields.subCategory !== undefined) updates.sub_category = fields.subCategory
-  if (fields.price !== undefined) updates.price = fields.price
-  if (fields.oldPrice !== undefined) updates.old_price = fields.oldPrice
-  if (fields.discountPercent !== undefined) updates.discount_percent = fields.discountPercent
-  if (fields.images !== undefined) updates.images = fields.images
-  if (fields.sizes !== undefined) updates.sizes = fields.sizes
-  if (fields.colors !== undefined) updates.colors = fields.colors
-  if (fields.fabric !== undefined) updates.fabric = fields.fabric
-  if (fields.fit !== undefined) updates.fit = fields.fit
-  if (fields.pattern !== undefined) updates.pattern = fields.pattern
-  if (fields.neckline !== undefined) updates.neckline = fields.neckline
-  if (fields.sleeves !== undefined) updates.sleeves = fields.sleeves
-  if (fields.occasion !== undefined) updates.occasion = fields.occasion
-  if (fields.washCare !== undefined) updates.wash_care = fields.washCare
-  if (fields.description !== undefined) updates.description = fields.description
-  if (fields.highlights !== undefined) updates.highlights = fields.highlights
+  const resData = await response.json().catch(() => ({}))
 
-  const { data, error } = await supabase
-    .from('apsarah_products')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
+  if (!response.ok || !resData.success || !resData.product) {
+    // Direct Supabase fallback
+    console.warn('API route failed, trying direct Supabase update...', resData.error)
+    const supabase = getSupabase()
+    const updates: Record<string, any> = {}
+    if (fields.name !== undefined) updates.name = fields.name
+    if (fields.slug !== undefined) updates.slug = fields.slug
+    if (fields.category !== undefined) updates.category = fields.category
+    if (fields.subCategory !== undefined) updates.sub_category = fields.subCategory
+    if (fields.price !== undefined) updates.price = fields.price
+    if (fields.oldPrice !== undefined) updates.old_price = fields.oldPrice
+    if (fields.discountPercent !== undefined) updates.discount_percent = fields.discountPercent
+    if (fields.images !== undefined) updates.images = fields.images
+    if (fields.sizes !== undefined) updates.sizes = fields.sizes
+    if (fields.colors !== undefined) updates.colors = fields.colors
+    if (fields.fabric !== undefined) updates.fabric = fields.fabric
+    if (fields.fit !== undefined) updates.fit = fields.fit
+    if (fields.pattern !== undefined) updates.pattern = fields.pattern
+    if (fields.neckline !== undefined) updates.neckline = fields.neckline
+    if (fields.sleeves !== undefined) updates.sleeves = fields.sleeves
+    if (fields.occasion !== undefined) updates.occasion = fields.occasion
+    if (fields.washCare !== undefined) updates.wash_care = fields.washCare
+    if (fields.description !== undefined) updates.description = fields.description
+    if (fields.highlights !== undefined) updates.highlights = fields.highlights
 
-  if (error) throw error
+    const { data, error } = await supabase
+      .from('apsarah_products')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
 
-  const updated = rowToProduct(data)
+    if (error) throw new Error(resData.error || error.message || 'Failed to update product.')
+
+    const updated = rowToProduct(data)
+    const cached = readCache() ?? initialProducts
+    writeCache(cached.map((p) => (p.id === id ? updated : p)))
+    return updated
+  }
+
+  const updatedProduct = rowToProduct(resData.product)
   const cached = readCache() ?? initialProducts
-  writeCache(cached.map((p) => (p.id === id ? updated : p)))
-  return updated
+  writeCache(cached.map((p) => (p.id === id ? updatedProduct : p)))
+  return updatedProduct
 }
 
-/** Delete a product from Supabase. */
+/** Delete a product from Supabase via API route. */
 export async function deleteProduct(id: string): Promise<void> {
-  const supabase = getSupabase()
-  const { error } = await supabase.from('apsarah_products').delete().eq('id', id)
-  if (error) throw error
+  const response = await fetch(`/api/admin/products?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+
+  const resData = await response.json().catch(() => ({}))
+
+  if (!response.ok || !resData.success) {
+    // Direct Supabase fallback
+    const supabase = getSupabase()
+    const { error } = await supabase.from('apsarah_products').delete().eq('id', id)
+    if (error) throw new Error(resData.error || error.message || 'Failed to delete product.')
+  }
 
   const cached = readCache() ?? initialProducts
   writeCache(cached.filter((p) => p.id !== id))
