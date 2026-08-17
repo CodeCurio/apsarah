@@ -25,7 +25,7 @@ import {
 import { addProduct } from '@/lib/products-store'
 import { MASTER_CATEGORIES } from '@/lib/constants/categories'
 
-// ─── Single Image Slot Component (Refined & Compact) ──────────────────────────
+// ─── Single Image Slot Component (Refined & Cloud Upload Enabled) ────────────
 function ImageSlot({
   label,
   value,
@@ -36,25 +36,74 @@ function ImageSlot({
   onChange: (val: string) => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
 
-  const handleFile = (file: File) => {
+  const uploadFile = async (file: File) => {
     if (!file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      if (ev.target?.result) onChange(ev.target.result as string)
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (res.ok && data.success && data.url) {
+        onChange(data.url)
+      } else {
+        alert('Image upload failed: ' + (data.error || 'Unknown error'))
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error'
+      alert('Upload error: ' + msg)
+    } finally {
+      setUploading(false)
     }
-    reader.readAsDataURL(file)
+  }
+
+  const uploadBase64OrUrl = async (urlOrBase64: string) => {
+    if (!urlOrBase64) {
+      onChange('')
+      return
+    }
+    if (urlOrBase64.startsWith('http://') || urlOrBase64.startsWith('https://')) {
+      onChange(urlOrBase64)
+      return
+    }
+    if (urlOrBase64.startsWith('data:image/')) {
+      setUploading(true)
+      try {
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: urlOrBase64 }),
+        })
+        const data = await res.json()
+        if (res.ok && data.success && data.url) {
+          onChange(data.url)
+        } else {
+          onChange(urlOrBase64)
+        }
+      } catch {
+        onChange(urlOrBase64)
+      } finally {
+        setUploading(false)
+      }
+    } else {
+      onChange(urlOrBase64)
+    }
   }
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
+    if (file) uploadFile(file)
   }
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) handleFile(file)
+    if (file) uploadFile(file)
   }
 
   return (
@@ -64,11 +113,16 @@ function ImageSlot({
       {/* Preview / Drop Zone */}
       <div
         className="relative w-full aspect-[3/4] rounded-2xl border-2 border-dashed border-[#e2d4c7] bg-[#FAF6F0]/40 overflow-hidden cursor-pointer group hover:border-[#8f1020] hover:bg-[#FAF6F0]/80 transition-all shadow-2xs flex-1 flex flex-col justify-center"
-        onClick={() => fileRef.current?.click()}
+        onClick={() => !uploading && fileRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
       >
-        {value ? (
+        {uploading ? (
+          <div className="flex flex-col items-center justify-center p-3 text-center gap-2">
+            <div className="w-8 h-8 border-2 border-[#8f1020] border-t-transparent rounded-full animate-spin" />
+            <span className="text-[11px] font-bold text-[#8f1020]">Uploading to Cloud...</span>
+          </div>
+        ) : value ? (
           <>
             <img
               src={value}
@@ -97,7 +151,7 @@ function ImageSlot({
               <ImageIcon className="w-4 h-4 text-[#8f1020]" />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-slate-700">Click to add photo</p>
+              <p className="text-[11px] font-bold text-slate-700">Click to upload photo</p>
               <p className="text-[9px] text-slate-400 mt-0.5 font-medium">or drag &amp; drop file</p>
             </div>
           </div>
@@ -117,7 +171,7 @@ function ImageSlot({
         type="text"
         placeholder="Or paste image URL..."
         value={value.startsWith('data:') ? '' : value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => uploadBase64OrUrl(e.target.value)}
         className="w-full bg-white border border-[#e2d4c7] rounded-xl px-2.5 py-1.5 text-[11px] outline-none focus:border-[#8f1020] text-slate-700 placeholder:text-slate-400 font-mono shadow-2xs transition-colors"
       />
     </div>

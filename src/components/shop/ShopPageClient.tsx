@@ -176,6 +176,12 @@ export function ShopPageClient() {
     }
     const q = searchParams?.get('q') || searchParams?.get('sub') || ''
     setUrlQueryFilter(q)
+
+    const priceParam = searchParams?.get('price')
+    if (priceParam) {
+      setSelectedPriceRange(priceParam)
+      setHasUserInteracted(true)
+    }
   }, [searchParams])
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>(() => searchParams?.get('price') || 'All')
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
@@ -186,18 +192,17 @@ export function ShopPageClient() {
   const [selectedPatterns, setSelectedPatterns] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<string>('featured')
 
-  // Categories list
+  // Categories list (strictly MASTER_CATEGORIES for clean, predictable storefront filters)
   const allCategories = useMemo(() => {
-    const cats = MASTER_CATEGORIES.map((m) => m.name)
-    const existing = [...new Set(products.map((p) => p.category))]
-    existing.forEach((c) => {
-      if (c && !cats.includes(c)) cats.push(c)
-    })
-    return cats
-  }, [products])
+    return MASTER_CATEGORIES.map((m) => m.name)
+  }, [])
 
   const priceRanges = [
     { label: 'All Prices', value: 'All' },
+    { label: 'Under ₹2,500', value: 'under-2500' },
+    { label: '₹2,500 – ₹3,999', value: '2500-4000' },
+    { label: '₹4,000 – ₹5,999', value: '4000-6000' },
+    { label: 'Above ₹6,000', value: 'above-6000' },
     { label: 'Under ₹2,000', value: 'under-2000' },
     { label: '₹2,000 – ₹3,500', value: '2000-3500' },
     { label: '₹3,500 – ₹5,000', value: '3500-5000' },
@@ -218,18 +223,15 @@ export function ShopPageClient() {
   const matchesFilterGroup = (product: Product, selectedLabels: string[], groupOptions: FilterOption[]): boolean => {
     if (selectedLabels.length === 0) return true
     
-    // Combine all fields into a single text haystack for searching
-    const haystack = [
+    // Focused field haystack to prevent generic product descriptions from leaking wrong categories
+    const searchTarget = [
       product.name,
       product.category,
       product.subCategory || '',
       product.fabric,
       product.fit,
       product.pattern,
-      product.neckline,
-      product.sleeves,
       product.occasion,
-      product.description,
       ...(product.highlights || []),
       ...(product.colors || []).map((c) => `${c.name} ${c.hex}`),
     ]
@@ -240,7 +242,7 @@ export function ShopPageClient() {
     return selectedLabels.some((label) => {
       const option = groupOptions.find((opt) => opt.label === label)
       if (!option) return false
-      return option.keywords.some((kw) => haystack.includes(kw.toLowerCase()))
+      return option.keywords.some((kw) => searchTarget.includes(kw.toLowerCase()))
     })
   }
 
@@ -248,13 +250,21 @@ export function ShopPageClient() {
   const filteredProducts = useMemo(() => {
     return products
       .filter((item) => {
-        // 1. Category check
+        // 1. Category check - Strict matching against admin-selected category & aliases
         if (selectedCategories.length > 0) {
             const allowedCategoryAliases = selectedCategories.flatMap((c) => [c, ...getCategoryAliases(c)])
-            if (!allowedCategoryAliases.includes(item.category)) return false
+            const itemCat = item.category ? item.category.trim() : ''
+            if (!allowedCategoryAliases.some((alias) => alias.toLowerCase() === itemCat.toLowerCase())) {
+              return false
+            }
         }
 
-        // 2. Price check
+        // 2. Price check - Comprehensive support for all price tiers
+        if (selectedPriceRange === 'under-2500' && item.price >= 2500) return false
+        if (selectedPriceRange === '2500-4000' && (item.price < 2500 || item.price >= 4000)) return false
+        if (selectedPriceRange === '4000-6000' && (item.price < 4000 || item.price >= 6000)) return false
+        if (selectedPriceRange === 'above-6000' && item.price < 6000) return false
+
         if (selectedPriceRange === 'under-2000' && item.price >= 2000) return false
         if (selectedPriceRange === '2000-3500' && (item.price < 2000 || item.price > 3500)) return false
         if (selectedPriceRange === '3500-5000' && (item.price < 3500 || item.price > 5000)) return false

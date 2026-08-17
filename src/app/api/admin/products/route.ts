@@ -72,6 +72,43 @@ export async function GET() {
   }
 }
 
+// Helper: upload base64 image strings to Supabase Storage if any exist
+async function processImages(images: string[], supabase: any): Promise<string[]> {
+  if (!Array.isArray(images)) return []
+  const processed: string[] = []
+
+  for (const img of images) {
+    if (!img) continue
+    if (img.startsWith('data:image/')) {
+      try {
+        const match = img.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/)
+        if (match) {
+          const mimeType = match[1]
+          const fileBuffer = Buffer.from(match[2], 'base64')
+          let fileExtension = 'jpg'
+          if (mimeType.includes('png')) fileExtension = 'png'
+          else if (mimeType.includes('webp')) fileExtension = 'webp'
+
+          const filename = `img-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}.${fileExtension}`
+          const { data, error } = await supabase.storage
+            .from('product-images')
+            .upload(filename, fileBuffer, { contentType: mimeType, upsert: true })
+
+          if (!error && data) {
+            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/product-images/${filename}`
+            processed.push(publicUrl)
+            continue
+          }
+        }
+      } catch (e) {
+        console.error('Base64 auto-upload error:', e)
+      }
+    }
+    processed.push(img)
+  }
+  return processed
+}
+
 // POST /api/admin/products (Create Product)
 export async function POST(request: Request) {
   try {
@@ -83,6 +120,9 @@ export async function POST(request: Request) {
 
     const supabase = getAdminClient()
     const row = toDbRow(body)
+
+    // Process images to replace any base64 string with Supabase Storage public URL
+    row.images = await processImages(row.images, supabase)
 
     // Check if slug exists in DB, append random suffix if conflict
     const { data: existingSlug } = await supabase
@@ -135,7 +175,9 @@ export async function PUT(request: Request) {
       updates.old_price = Number(body.oldPrice ?? body.old_price)
     if (body.discountPercent !== undefined || body.discount_percent !== undefined)
       updates.discount_percent = Number(body.discountPercent ?? body.discount_percent)
-    if (body.images !== undefined) updates.images = body.images
+    if (body.images !== undefined) {
+      updates.images = await processImages(body.images, supabase)
+    }
     if (body.sizes !== undefined) updates.sizes = body.sizes
     if (body.colors !== undefined) updates.colors = body.colors
     if (body.fabric !== undefined) updates.fabric = body.fabric

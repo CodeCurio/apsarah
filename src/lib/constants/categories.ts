@@ -155,13 +155,35 @@ export function getCategoryAliases(categoryName: string): string[] {
   if (!categoryName) return []
   const lower = categoryName.trim().toLowerCase()
 
-  if (lower === 'suit sets' || lower === 'kurta sets' || lower === 'suits') {
+  if (
+    lower === 'suit sets' ||
+    lower === 'suit set' ||
+    lower === 'suits' ||
+    lower === 'suit' ||
+    lower === 'kurta sets' ||
+    lower === 'kurta set'
+  ) {
     return ['Suit Sets', 'Kurta Sets']
   }
-  if (lower === 'kurtis & tops' || lower === 'kurtas & tops' || lower === 'kurtis' || lower === 'kurtas') {
+  if (
+    lower === 'kurtis & tops' ||
+    lower === 'kurtas & tops' ||
+    lower === 'kurtis' ||
+    lower === 'kurti' ||
+    lower === 'kurtas' ||
+    lower === 'kurta' ||
+    lower === 'tops' ||
+    lower === 'top'
+  ) {
     return ['Kurtis & Tops', 'Kurtas & Tops']
   }
-  if (lower === 'co-ord sets' || lower === 'co-ords' || lower === 'co-ord') {
+  if (
+    lower === 'co-ord sets' ||
+    lower === 'co-ords' ||
+    lower === 'co-ord' ||
+    lower === 'coord sets' ||
+    lower === 'coords'
+  ) {
     return ['Co-ord Sets']
   }
   if (lower === 'lehengas' || lower === 'lehenga') {
