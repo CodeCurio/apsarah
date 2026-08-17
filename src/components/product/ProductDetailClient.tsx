@@ -23,6 +23,8 @@ import {
   Upload,
   X,
   Lock,
+  Loader2,
+  Check,
   MessageCircle,
   AlertTriangle,
 } from 'lucide-react'
@@ -152,18 +154,31 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     }
   }, [product.id, user])
 
-  const handlePincodeCheck = (e: React.FormEvent) => {
+  const handlePincodeCheck = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (pincode.length === 6) {
-      const today = new Date()
-      const d1 = new Date(today)
-      d1.setDate(today.getDate() + 3)
-      const d2 = new Date(today)
-      d2.setDate(today.getDate() + 5)
-      const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-      setPincodeStatus(`✅ Guaranteed Express Delivery between ${d1.toLocaleDateString('en-IN', options)} - ${d2.toLocaleDateString('en-IN', options)} to ${pincode}. Cash on Delivery available!`)
-    } else {
-      setPincodeStatus('❌ Please enter a valid 6-digit Pincode.')
+    const clean = pincode.replace(/\D/g, '').trim()
+    if (clean.length !== 6) {
+      setPincodeResult({
+        serviceable: false,
+        message: 'Please enter a valid 6-digit Indian Pincode.',
+      })
+      return
+    }
+
+    setPincodeLoading(true)
+    setPincodeResult(null)
+
+    try {
+      const res = await fetch(`/api/pincode/check?pincode=${clean}`)
+      const data: PincodeResult = await res.json()
+      setPincodeResult(data)
+    } catch {
+      setPincodeResult({
+        serviceable: false,
+        message: 'Unable to check courier serviceability. Please try again.',
+      })
+    } finally {
+      setPincodeLoading(false)
     }
   }
 
@@ -562,21 +577,58 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
                     const val = e.target.value.replace(/\D/g, '')
                     setPincode(val)
                   }}
-                  placeholder="Enter 6-digit Pincode"
+                  placeholder="Enter 6-digit Pincode (e.g. 110001)"
                   className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#FAF6F0] border border-[#E2D4C7] text-xs outline-none focus:border-[#8F1020] font-semibold text-slate-800"
                 />
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#2B1713] text-white text-xs font-bold hover:bg-[#8f1020] transition-colors cursor-pointer"
+                  disabled={pincodeLoading || pincode.length !== 6}
+                  className="px-5 py-2.5 rounded-xl bg-[#2B1713] hover:bg-[#8f1020] disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
                 >
-                  Check
+                  {pincodeLoading ? 'Checking...' : 'Check'}
                 </button>
               </form>
 
-              {pincodeStatus && (
-                <p className={`text-xs font-bold pt-1 ${pincodeStatus.includes('✅') ? 'text-emerald-700' : 'text-rose-600'}`}>
-                  {pincodeStatus}
-                </p>
+              {pincodeLoading && (
+                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium pt-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8F1020]" />
+                  <span>Verifying courier serviceability & estimated delivery time...</span>
+                </div>
+              )}
+
+              {pincodeResult && !pincodeLoading && (
+                <div className="pt-1">
+                  {pincodeResult.serviceable ? (
+                    <div className="p-3.5 bg-gradient-to-r from-emerald-50 via-emerald-50/50 to-transparent border border-emerald-300/80 rounded-xl space-y-2 text-xs">
+                      <div className="flex items-center justify-between font-bold text-emerald-950">
+                        <span className="flex items-center gap-1.5 text-emerald-900 font-extrabold">
+                          <Check className="w-4 h-4 text-white bg-emerald-600 rounded-full p-0.5" />
+                          <span>Pincode {pincodeResult.pincode} is Serviceable</span>
+                        </span>
+                        <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                          COD Available
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-slate-700 font-medium text-[11px] pl-5">
+                        <p className="font-bold text-slate-900">
+                          📍 Destination: {pincodeResult.area ? `${pincodeResult.area}, ` : ''}{pincodeResult.city} ({pincodeResult.state})
+                        </p>
+                        <p className="text-emerald-800 font-bold flex items-center gap-1">
+                          🚚 Delivery Window: {pincodeResult.deliveryWindow}
+                        </p>
+                        <p className="text-slate-500 text-[10px]">
+                          ⚡ Express Logistics: {pincodeResult.courierPartner} ({pincodeResult.estimatedDays})
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold flex items-center gap-2">
+                      <X className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>{pincodeResult.message || 'Pincode is not serviceable.'}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

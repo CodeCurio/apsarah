@@ -36,28 +36,45 @@ function saveLocalWishlist(ids: string[]) {
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [wishlistIds, setWishlistIds] = useState<string[]>([])
   const { user } = useAuth()
-  const { toastSuccess, toastError } = useToast()
+  const { toastSuccess } = useToast()
 
-  // 1. Fetch Wishlist on Mount or Auth Change
+  // Sync & Merge Wishlist on Mount or Auth Change
   useEffect(() => {
+    const supabase = createClient()
+
     if (user) {
-      // Fetch from Supabase for logged-in user
-      const supabase = createClient()
+      const localIds = loadLocalWishlist()
+
+      // Fetch user's wishlist from Supabase
       supabase
         .from('wishlist')
         .select('product_id')
         .eq('user_id', user.id)
-        .then(({ data, error }) => {
+        .then(async ({ data, error }) => {
           if (!error && data) {
-            const ids = data.map((item) => item.product_id)
-            setWishlistIds(ids)
-            saveLocalWishlist(ids)
+            const dbIds = data.map((item) => item.product_id)
+
+            // Merge local guest wishlist items into user's DB wishlist if there are unsynced guest items
+            const newGuestItems = localIds.filter((id) => !dbIds.includes(id))
+
+            if (newGuestItems.length > 0) {
+              const toInsert = newGuestItems.map((id) => ({
+                user_id: user.id,
+                product_id: id,
+              }))
+              await supabase.from('wishlist').upsert(toInsert, { onConflict: 'user_id,product_id' })
+            }
+
+            const mergedIds = Array.from(new Set([...dbIds, ...localIds]))
+            setWishlistIds(mergedIds)
+            saveLocalWishlist(mergedIds)
           } else {
+            // Fallback to local cache if DB error / network offline
             setWishlistIds(loadLocalWishlist())
           }
         })
     } else {
-      // Load from localStorage for guest user
+      // Guest user: load from localStorage
       setWishlistIds(loadLocalWishlist())
     }
   }, [user])
@@ -73,32 +90,43 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       const name = productName || 'Product'
 
       if (isSaved) {
-        // Remove from state & cache
+        // Remove from state & local cache immediately
         const updated = wishlistIds.filter((id) => id !== productId)
         setWishlistIds(updated)
         saveLocalWishlist(updated)
         toastSuccess(`Removed "${name}" from wishlist`)
 
-        // Sync with Supabase if logged in
+        // Sync deletion with Supabase if logged in
         if (user) {
-          const supabase = createClient()
-          await supabase.from('wishlist').delete().eq('user_id', user.id).eq('product_id', productId)
+          try {
+            const supabase = createClient()
+            await supabase.from('wishlist').delete().eq('user_id', user.id).eq('product_id', productId)
+          } catch (err) {
+            console.error('Failed to sync wishlist removal with Supabase:', err)
+          }
         }
       } else {
-        // Add to state & cache
+        // Add to state & local cache immediately
         const updated = [...wishlistIds, productId]
         setWishlistIds(updated)
         saveLocalWishlist(updated)
         toastSuccess(`Added "${name}" to your wishlist! ❤️`)
 
-        // Sync with Supabase if logged in
+        // Sync addition with Supabase if logged in
         if (user) {
-          const supabase = createClient()
-          await supabase.from('wishlist').insert({ user_id: user.id, product_id: productId })
+          try {
+            const supabase = createClient()
+            await supabase.from('wishlist').upsert(
+              { user_id: user.id, product_id: productId },
+              { onConflict: 'user_id,product_id' }
+            )
+          } catch (err) {
+            console.error('Failed to sync wishlist addition with Supabase:', err)
+          }
         }
       }
     },
-    [wishlistIds, user, toastSuccess, toastError]
+    [wishlistIds, user, toastSuccess]
   )
 
   return (

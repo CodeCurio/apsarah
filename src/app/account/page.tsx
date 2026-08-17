@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Package, Heart, MapPin, UserRound, LogOut, ChevronRight, Clock } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useWishlist } from '@/context/WishlistContext'
 import { createClient } from '@/lib/supabase/client'
 
 interface RecentOrder {
@@ -18,9 +19,9 @@ interface RecentOrder {
 
 export default function AccountDashboard() {
   const { user, profile, loading, signOut } = useAuth()
+  const { wishlistCount } = useWishlist()
   const router = useRouter()
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
-  const [wishlistCount, setWishlistCount] = useState(0)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -39,15 +40,6 @@ export default function AccountDashboard() {
         .limit(3)
         .then(({ data }) => {
           if (data) setRecentOrders(data as RecentOrder[])
-        })
-
-      // Fetch wishlist count
-      supabase
-        .from('wishlist')
-        .select('id', { count: 'exact' })
-        .eq('user_id', user.id)
-        .then(({ count }) => {
-          setWishlistCount(count || 0)
         })
     }
   }, [user, loading, router])
