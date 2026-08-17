@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Filter, X, Plus, Minus, RotateCcw, Check } from 'lucide-react'
 import { Product, fetchProducts, initialProducts } from '@/lib/products-store'
 import { ProductCard } from '@/components/shop/ProductCard'
@@ -144,9 +144,13 @@ const WORK_AND_PATTERNS: FilterOption[] = [
 
 export function ShopPageClient() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [loading, setLoading] = useState(true)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [hasUserInteracted, setHasUserInteracted] = useState(false)
+  const [lastSearchParamsStr, setLastSearchParamsStr] = useState<string>(() => searchParams?.toString() || '')
 
   useEffect(() => {
     fetchProducts().then((data) => {
@@ -167,23 +171,34 @@ export function ShopPageClient() {
     return []
   })
   const [urlQueryFilter, setUrlQueryFilter] = useState<string>(() => searchParams?.get('q') || searchParams?.get('sub') || '')
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>(() => searchParams?.get('price') || 'All')
 
+  // Sync state with URL searchParams only on external URL changes
   useEffect(() => {
+    const currentStr = searchParams?.toString() || ''
+    if (hasUserInteracted && currentStr === lastSearchParamsStr) {
+      return
+    }
+
+    setLastSearchParamsStr(currentStr)
+
     const cat = searchParams?.get('category') || ''
     if (cat && cat !== 'All' && cat !== 'New In' && cat !== 'NEW IN') {
       const match = MASTER_CATEGORIES.find((m) => m.name.toLowerCase() === cat.toLowerCase() || getCategoryAliases(m.name).map((a) => a.toLowerCase()).includes(cat.toLowerCase()))
       setSelectedCategories([match ? match.name : cat])
+    } else if (cat === 'All' || cat === 'New In' || cat === 'NEW IN') {
+      setSelectedCategories([])
     }
+
     const q = searchParams?.get('q') || searchParams?.get('sub') || ''
     setUrlQueryFilter(q)
 
     const priceParam = searchParams?.get('price')
     if (priceParam) {
       setSelectedPriceRange(priceParam)
-      setHasUserInteracted(true)
     }
-  }, [searchParams])
-  const [selectedPriceRange, setSelectedPriceRange] = useState<string>(() => searchParams?.get('price') || 'All')
+  }, [searchParams, hasUserInteracted, lastSearchParamsStr])
+
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedColorFamilies, setSelectedColorFamilies] = useState<string[]>([])
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([])
@@ -210,8 +225,6 @@ export function ShopPageClient() {
   ]
   
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Unstitched']
-
-  const [hasUserInteracted, setHasUserInteracted] = useState(false)
 
   // Toggle helpers with interaction tracking
   const toggleArr = (arr: string[], val: string, set: React.Dispatch<React.SetStateAction<string[]>>) => {
@@ -332,6 +345,7 @@ export function ShopPageClient() {
   ])
 
   const clearAllFilters = () => {
+    setHasUserInteracted(true)
     setSelectedCategories([])
     setSelectedPriceRange('All')
     setSelectedSizes([])
@@ -341,7 +355,12 @@ export function ShopPageClient() {
     setSelectedOccasions([])
     setSelectedPatterns([])
     setUrlQueryFilter('')
-    setHasUserInteracted(false)
+
+    // Clean up browser URL query string so searchParams won't retain stale category
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', pathname || '/shop')
+    }
+    router.replace(pathname || '/shop', { scroll: false })
   }
 
   const activeCount =

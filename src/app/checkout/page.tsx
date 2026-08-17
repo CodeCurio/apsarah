@@ -12,6 +12,7 @@ import { PromoCouponWidget } from '@/components/cart/PromoCouponWidget'
 import { AuthForm } from '@/components/auth/AuthModal'
 import { saveUserAddress } from '@/lib/address-utils'
 import { decrementProductStock } from '@/lib/products-store'
+import { recordCouponUsage } from '@/lib/coupons-store'
 
 export default function CheckoutPage() {
   const { items, itemCount, subtotal, discount, shippingCost, total, appliedCoupon, clearCart } = useCart()
@@ -265,6 +266,11 @@ export default function CheckoutPage() {
         quantity: i.quantity,
       }))
     )
+
+    // 4. Record Coupon Usage count if a promo code was applied
+    if (appliedCoupon?.code) {
+      await recordCouponUsage(appliedCoupon.code)
+    }
 
     // 4. Trigger Order Confirmation Emails via Resend
     fetch('/api/emails/send-order-confirmation', {

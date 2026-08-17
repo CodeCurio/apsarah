@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react'
 import { Tag, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Sparkles, X, Gift } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
-import { PromoCoupon, fetchAllCoupons } from '@/lib/coupons-store'
+import { PromoCoupon, fetchAllCoupons, validateCoupon } from '@/lib/coupons-store'
 
 interface PromoCouponWidgetProps {
   compact?: boolean // True for CartDrawer, False for full Cart/Checkout pages
 }
 
 export function PromoCouponWidget({ compact = false }: PromoCouponWidgetProps) {
-  const { subtotal, appliedCoupon, applyCoupon, removeCoupon, discount } = useCart()
+  const { subtotal, items, appliedCoupon, applyCoupon, removeCoupon, discount } = useCart()
   const { toastSuccess, toastError } = useToast()
   
   const [inputCode, setInputCode] = useState('')
@@ -140,8 +140,9 @@ export function PromoCouponWidget({ compact = false }: PromoCouponWidgetProps) {
             <div className="space-y-2.5 mt-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
               {availableOffers.map((offer) => {
                 const isCurrent = appliedCoupon?.code === offer.code
-                const eligible = subtotal >= offer.min_order_amount
-                const shortfall = offer.min_order_amount - subtotal
+                const offerVal = validateCoupon(offer.code, subtotal, [offer], items)
+                const eligible = offerVal.valid
+                const shortfall = offer.min_order_amount - offerVal.eligibleSubtotal
 
                 return (
                   <div
@@ -190,7 +191,11 @@ export function PromoCouponWidget({ compact = false }: PromoCouponWidgetProps) {
 
                     {!eligible && subtotal > 0 && (
                       <p className="text-[10px] text-amber-800 font-bold bg-amber-50 border border-amber-200/80 px-2 py-1 rounded-md flex items-center gap-1">
-                        <span>⚠️ Add items worth ₹{shortfall.toLocaleString()} more to unlock this offer! (Min spend: ₹{offer.min_order_amount.toLocaleString()})</span>
+                        {offerVal.eligibleSubtotal === 0 ? (
+                          <span>⚠️ Not applicable to items currently in your bag.</span>
+                        ) : (
+                          <span>⚠️ Add eligible items worth ₹{shortfall.toLocaleString()} more to unlock this offer! (Min spend: ₹{offer.min_order_amount.toLocaleString()})</span>
+                        )}
                       </p>
                     )}
                   </div>

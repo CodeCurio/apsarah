@@ -1,6 +1,5 @@
-'use client'
-
 import { createClient } from '@/lib/supabase/client'
+import { getCategoryAliases } from '@/lib/constants/categories'
 
 export interface PromoCoupon {
   id: string
@@ -9,12 +8,19 @@ export interface PromoCoupon {
   value: number
   min_order_amount: number
   max_discount_amount?: number
+  applicable_category?: string
+  applicable_product_ids?: string[]
   usage_limit?: number
   times_used: number
   is_active: boolean
   description: string
   created_at: string
   expires_at?: string
+}
+
+export interface CartItemForCoupon {
+  product: { id: string; category?: string; price: number }
+  quantity: number
 }
 
 export const initialCoupons: PromoCoupon[] = [
@@ -180,56 +186,124 @@ export async function removeCouponById(id: string): Promise<PromoCoupon[]> {
   return updated
 }
 
-// Validate coupon code against subtotal
-export function validateCoupon(code: string, subtotal: number, allCoupons: PromoCoupon[]): {
+// Record coupon usage on successful order completion
+export async function recordCouponUsage(code: string): Promise<void> {
+  if (!code) return
+  const clean = code.trim().toUpperCase()
+  const current = getCouponsStore()
+  const target = current.find((c) => c.code.toUpperCase() === clean)
+  if (!target) return
+
+  const updatedTimes = (target.times_used || 0) + 1
+  const updated = current.map((c) => (c.code.toUpperCase() === clean ? { ...c, times_used: updatedTimes } : c))
+  saveCouponsStore(updated)
+
+  try {
+    const supabase = createClient()
+    await supabase.from('coupons').update({ times_used: updatedTimes }).eq('code', clean)
+  } catch {
+    // Ignore db failure
+  }
+}
+
+// Validate coupon code against subtotal & cart items
+export function validateCoupon(
+  code: string,
+  subtotal: number,
+  allCoupons: PromoCoupon[],
+  cartItems?: CartItemForCoupon[]
+): {
   valid: boolean
   coupon?: PromoCoupon
   discountAmount: number
+  eligibleSubtotal: number
   message: string
 } {
   const trimmed = code.trim().toUpperCase()
   if (!trimmed) {
-    return { valid: false, discountAmount: 0, message: 'Please enter a valid coupon code.' }
+    return { valid: false, discountAmount: 0, eligibleSubtotal: 0, message: 'Please enter a valid coupon code.' }
   }
 
   const found = allCoupons.find((c) => c.code === trimmed)
   if (!found || !found.is_active) {
-    return { valid: false, discountAmount: 0, message: `Coupon "${trimmed}" is invalid or currently inactive.` }
+    return { valid: false, discountAmount: 0, eligibleSubtotal: 0, message: `Coupon "${trimmed}" is invalid or currently inactive.` }
   }
 
   if (found.expires_at && new Date(found.expires_at) < new Date()) {
-    return { valid: false, discountAmount: 0, message: `Coupon "${trimmed}" has already expired.` }
+    return { valid: false, discountAmount: 0, eligibleSubtotal: 0, message: `Coupon "${trimmed}" has already expired.` }
   }
 
   if (found.usage_limit && found.times_used >= found.usage_limit) {
-    return { valid: false, discountAmount: 0, message: `Coupon "${trimmed}" has reached its maximum store usage limit.` }
+    return { valid: false, discountAmount: 0, eligibleSubtotal: 0, message: `Coupon "${trimmed}" has reached its maximum store usage limit.` }
   }
 
-  if (subtotal < found.min_order_amount) {
-    const diff = found.min_order_amount - subtotal
-    return {
-      valid: false,
-      discountAmount: 0,
-      message: `Add ₹${diff.toLocaleString()} more to your cart to unlock coupon "${trimmed}" (Min order ₹${found.min_order_amount.toLocaleString()}).`,
+  // Calculate subtotal of eligible items if category/product restrictions exist
+  let eligibleSubtotal = subtotal
+  if (cartItems && cartItems.length > 0) {
+    let hasRestriction = false
+    let matchedSubtotal = 0
+
+    if (found.applicable_category) {
+      hasRestriction = true
+      const allowedCategoryAliases = getCategoryAliases(found.applicable_category).map((a) => a.toLowerCase())
+      cartItems.forEach((item) => {
+        const itemCat = (item.product.category || '').toLowerCase()
+        if (allowedCategoryAliases.some((alias) => alias === itemCat)) {
+          matchedSubtotal += item.product.price * item.quantity
+        }
+      })
+    }
+
+    if (found.applicable_product_ids && found.applicable_product_ids.length > 0) {
+      hasRestriction = true
+      cartItems.forEach((item) => {
+        if (found.applicable_product_ids?.includes(item.product.id)) {
+          matchedSubtotal += item.product.price * item.quantity
+        }
+      })
+    }
+
+    if (hasRestriction) {
+      eligibleSubtotal = matchedSubtotal
     }
   }
 
-  // Calculate discount
+  if (eligibleSubtotal === 0) {
+    return {
+      valid: false,
+      discountAmount: 0,
+      eligibleSubtotal: 0,
+      message: `Coupon "${trimmed}" is not applicable to the items in your bag.`,
+    }
+  }
+
+  if (eligibleSubtotal < (found.min_order_amount || 0)) {
+    const diff = (found.min_order_amount || 0) - eligibleSubtotal
+    return {
+      valid: false,
+      discountAmount: 0,
+      eligibleSubtotal,
+      message: `Add ₹${diff.toLocaleString()} more of eligible items to unlock coupon "${trimmed}" (Min spend ₹${found.min_order_amount.toLocaleString()}).`,
+    }
+  }
+
+  // Calculate discount based on eligible subtotal
   let disc = 0
   if (found.type === 'percentage') {
-    disc = Math.round((subtotal * found.value) / 100)
+    disc = Math.round((eligibleSubtotal * found.value) / 100)
     if (found.max_discount_amount && disc > found.max_discount_amount) {
       disc = found.max_discount_amount
     }
   } else {
     disc = found.value
-    if (disc > subtotal) disc = subtotal
+    if (disc > eligibleSubtotal) disc = eligibleSubtotal
   }
 
   return {
     valid: true,
     coupon: found,
     discountAmount: disc,
+    eligibleSubtotal,
     message: `🎉 Promo code "${found.code}" applied successfully! You save ₹${disc.toLocaleString()}.`,
   }
 }

@@ -2,19 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { Product } from '@/lib/products-store'
-import { fetchAllCoupons, validateCoupon } from '@/lib/coupons-store'
+import { PromoCoupon, fetchAllCoupons, validateCoupon } from '@/lib/coupons-store'
 
 export interface CartItem {
   product: Product
   quantity: number
   selectedSize: string
-}
-
-interface Coupon {
-  code: string
-  type: 'percentage' | 'fixed'
-  value: number
-  max_discount_amount?: number
 }
 
 interface CartContextType {
@@ -24,7 +17,7 @@ interface CartContextType {
   discount: number
   shippingCost: number
   total: number
-  appliedCoupon: Coupon | null
+  appliedCoupon: PromoCoupon | null
   isOpen: boolean
   addItem: (product: Product, quantity?: number, size?: string) => void
   removeItem: (productId: string, size: string) => void
@@ -58,7 +51,7 @@ function saveCart(items: CartItem[]) {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<PromoCoupon | null>(null)
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -73,15 +66,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
 
+  // Re-validate applied coupon automatically whenever cart items or subtotal changes
+  useEffect(() => {
+    if (!appliedCoupon) return
+    if (items.length === 0) {
+      setAppliedCoupon(null)
+      return
+    }
+    const res = validateCoupon(appliedCoupon.code, subtotal, [appliedCoupon], items)
+    if (!res.valid) {
+      setAppliedCoupon(null)
+    }
+  }, [items, subtotal, appliedCoupon])
+
+  // Calculate discount using item-level & min-spend validation
   let discount = 0
-  if (appliedCoupon && subtotal > 0) {
-    if (appliedCoupon.type === 'percentage') {
-      discount = Math.round((subtotal * appliedCoupon.value) / 100)
-      if (appliedCoupon.max_discount_amount && discount > appliedCoupon.max_discount_amount) {
-        discount = appliedCoupon.max_discount_amount
-      }
-    } else {
-      discount = Math.min(appliedCoupon.value, subtotal)
+  if (appliedCoupon && items.length > 0) {
+    const res = validateCoupon(appliedCoupon.code, subtotal, [appliedCoupon], items)
+    if (res.valid) {
+      discount = res.discountAmount
     }
   }
 
@@ -142,21 +145,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!code.trim()) return { success: false, message: 'Please enter a coupon code' }
     
     const allCoupons = await fetchAllCoupons()
-    const result = validateCoupon(code, subtotal, allCoupons)
+    const result = validateCoupon(code, subtotal, allCoupons, items)
 
     if (!result.valid || !result.coupon) {
       return { success: false, message: result.message }
     }
 
-    setAppliedCoupon({
-      code: result.coupon.code,
-      type: result.coupon.type,
-      value: result.coupon.value,
-      max_discount_amount: result.coupon.max_discount_amount,
-    })
+    setAppliedCoupon(result.coupon)
 
     return { success: true, message: result.message }
-  }, [subtotal])
+  }, [subtotal, items])
 
   const removeCoupon = useCallback(() => setAppliedCoupon(null), [])
 
