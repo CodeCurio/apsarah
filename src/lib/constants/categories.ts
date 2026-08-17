@@ -17,9 +17,9 @@ export interface PrimaryCategory {
 
 export const MASTER_CATEGORIES: PrimaryCategory[] = [
   {
-    id: 'cat-kurta-sets',
+    id: 'cat-suit-sets',
     name: 'Suit Sets',
-    slug: 'kurta-sets',
+    slug: 'suit-sets',
     image: '/assets/red-embroidered-silk-kurta-set-2.webp',
     subtitle: 'ROYALTY & HERITAGE',
     description: 'Intricately embroidered Anarkalis, Shararas, and Straight Suit Sets handcrafted for celebrations.',
@@ -29,7 +29,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
       'Sharara & Gharara Sets',
       'Angrakha Sets',
       'Velvet Sets',
-      'Silk Kurta Sets',
+      'Silk Suit Sets',
       'Palazzo Sets',
     ],
   },
@@ -97,22 +97,6 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     ],
   },
   {
-    id: 'cat-kurtas-tops',
-    name: 'Kurtis & Tops',
-    slug: 'kurtas-tops',
-    image: '/assets/emerald-green-silk-birdcage-embroidered-set-1.webp',
-    subtitle: 'EVERYDAY LUXURY',
-    description: 'Breathable Chikankari kurtas, short kurtis, and contemporary ethnic tunics for daily chic.',
-    subcategories: [
-      'Short Kurtis',
-      'Long Straight Kurtas',
-      'Ethnic Tunics',
-      'Peplum Tops',
-      'Printed Tops',
-      'Chikankari Kurtas',
-    ],
-  },
-  {
     id: 'cat-fragrance',
     name: 'Fragrance',
     slug: 'fragrance',
@@ -156,16 +140,15 @@ export function getCategoryAliases(categoryName: string): string[] {
   const lower = categoryName.trim().toLowerCase()
 
   if (
+    lower === 'suits & kurta sets' ||
+    lower === 'suit & kurta sets' ||
+    lower === 'suits & kurtas' ||
     lower === 'suit sets' ||
     lower === 'suit set' ||
     lower === 'suits' ||
     lower === 'suit' ||
     lower === 'kurta sets' ||
-    lower === 'kurta set'
-  ) {
-    return ['Suit Sets', 'Kurta Sets']
-  }
-  if (
+    lower === 'kurta set' ||
     lower === 'kurtis & tops' ||
     lower === 'kurtas & tops' ||
     lower === 'kurtis' ||
@@ -175,7 +158,7 @@ export function getCategoryAliases(categoryName: string): string[] {
     lower === 'tops' ||
     lower === 'top'
   ) {
-    return ['Kurtis & Tops', 'Kurtas & Tops']
+    return ['Suit Sets', 'Kurta Sets', 'Suits & Kurta Sets', 'Suits & Kurtas', 'Suit & Kurta Sets', 'Kurtis & Tops', 'Kurtas & Tops']
   }
   if (
     lower === 'co-ord sets' ||

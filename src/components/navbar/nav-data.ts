@@ -32,7 +32,7 @@ export const navItems: NavItem[] = [
         },
         {
           heading: "POPULAR CATEGORIES",
-          links: ["Suit Sets", "Sarees", "Lehengas", "Co-ord Sets", "Dresses", "Kurtis & Tops"],
+          links: ["Suit Sets", "Sarees", "Lehengas", "Co-ord Sets", "Dresses"],
         },
         {
           heading: "CURATED EDITS",
