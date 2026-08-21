@@ -122,12 +122,12 @@ export function Footer() {
           <div className="apsFooterCol">
             <h4>COLLECTIONS</h4>
             <ul>
-              <li><Link href="#shop">Straight Suit Sets</Link></li>
-              <li><Link href="#shop">Classic Kurtas</Link></li>
-              <li><Link href="#shop">Festive Sarees</Link></li>
-              <li><Link href="#shop">Co-ord Sets</Link></li>
-              <li><Link href="#shop">Anarkali Sets</Link></li>
-              <li><Link href="#shop">Bestsellers</Link></li>
+              <li><Link href="/shop?category=Suit%20Sets&sub=Straight%20Suit%20Sets">Straight Suit Sets</Link></li>
+              <li><Link href="/shop?category=Suit%20Sets">Classic Kurtas</Link></li>
+              <li><Link href="/shop?category=Sarees">Festive Sarees</Link></li>
+              <li><Link href="/shop?category=Co-ord%20Sets">Co-ord Sets</Link></li>
+              <li><Link href="/shop?category=Suit%20Sets&sub=Anarkali%20Sets">Anarkali Sets</Link></li>
+              <li><Link href="/shop?bestseller=true">Bestsellers</Link></li>
             </ul>
           </div>
 

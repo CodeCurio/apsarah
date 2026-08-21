@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react'
-import { fetchProducts, initialProducts, Product } from '@/lib/products-store'
+import { fetchFeaturedProducts, initialProducts, Product } from '@/lib/products-store'
 import { useWishlist } from '@/context/WishlistContext'
 
 export function MostLovedSection() {
@@ -12,8 +12,8 @@ export function MostLovedSection() {
   const { isInWishlist, toggleWishlist } = useWishlist()
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      setProducts(data.slice(0, 6))
+    fetchFeaturedProducts(6).then((data) => {
+      setProducts(data)
     })
   }, [])
 

@@ -589,46 +589,128 @@ export const initialProducts: Product[] = [
   },
 ]
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+import { cache } from 'react'
+
+// ─── Module-level cache & Promise deduplication ─────────────────────────────
+let inFlightFetchPromise: Promise<Product[]> | null = null
+let memoryCache: { products: Product[]; timestamp: number } | null = null
+const MEMORY_CACHE_TTL_MS = 60 * 1000 // 1 minute in-memory cache
 
 /** Fetch all products from Supabase/API. Falls back to cache, then initialProducts. */
-export async function fetchProducts(): Promise<Product[]> {
-  try {
-    // 1. Try server API route first for authenticated/fresh DB state
-    const res = await fetch('/api/admin/products', { cache: 'no-store' }).catch(() => null)
-    if (res && res.ok) {
-      const json = await res.json()
-      if (json.products && json.products.length > 0) {
-        const products = json.products.map(rowToProduct)
+export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
+  const now = Date.now()
+  if (!forceRefresh && memoryCache && now - memoryCache.timestamp < MEMORY_CACHE_TTL_MS) {
+    return memoryCache.products
+  }
+
+  if (inFlightFetchPromise && !forceRefresh) {
+    return inFlightFetchPromise
+  }
+
+  inFlightFetchPromise = (async () => {
+    try {
+      // 1. Try server API route first (uses Next.js / browser revalidation cache)
+      const res = await fetch('/api/admin/products', {
+        next: { revalidate: 60, tags: ['products'] },
+      } as RequestInit).catch(() => null)
+
+      if (res && res.ok) {
+        const json = await res.json()
+        if (json.products && json.products.length > 0) {
+          const products = json.products.map(rowToProduct)
+          memoryCache = { products, timestamp: Date.now() }
+          writeCache(products)
+          return products
+        }
+      }
+
+      // 2. Direct Supabase fallback
+      const supabase = getSupabase()
+      const { data, error } = await supabase
+        .from('apsarah_products')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!error && data && data.length > 0) {
+        const products = data.map(rowToProduct)
+        memoryCache = { products, timestamp: Date.now() }
         writeCache(products)
         return products
       }
-    }
 
-    // 2. Direct Supabase fallback
+      throw new Error('No DB data returned')
+    } catch {
+      // Try local cache first
+      const cached = readCache()
+      if (cached && cached.length > 0) {
+        memoryCache = { products: cached, timestamp: Date.now() }
+        return cached
+      }
+      return initialProducts
+    } finally {
+      inFlightFetchPromise = null
+    }
+  })()
+
+  return inFlightFetchPromise
+}
+
+/** Fetch only featured/bestseller products with minimal columns for homepage rails. */
+export async function fetchFeaturedProducts(limit = 6): Promise<Product[]> {
+  try {
     const supabase = getSupabase()
     const { data, error } = await supabase
       .from('apsarah_products')
-      .select('*')
+      .select('id, name, slug, category, sub_category, price, old_price, discount_percent, rating, review_count, images, is_bestseller, is_new_arrival')
       .order('created_at', { ascending: false })
+      .limit(limit)
 
     if (!error && data && data.length > 0) {
-      const products = data.map(rowToProduct)
-      writeCache(products)
-      return products
+      return data.map(rowToProduct)
     }
+  } catch {}
 
-    throw new Error('No DB data returned')
-  } catch {
-    // Try cache first
-    const cached = readCache()
-    if (cached && cached.length > 0) return cached
-    return initialProducts
-  }
+  const cached = readCache() ?? initialProducts
+  return cached.slice(0, limit)
 }
 
-/** Fetch single product by slug. */
-export async function fetchProductBySlug(slug: string): Promise<Product | null> {
+/** Fetch minimal price data for price tier counting. */
+export async function fetchPriceTiersSummary(): Promise<Array<{ id: string; price: number }>> {
+  try {
+    const supabase = getSupabase()
+    const { data, error } = await supabase
+      .from('apsarah_products')
+      .select('id, price')
+
+    if (!error && data && data.length > 0) {
+      return data.map((d: any) => ({ id: d.id, price: Number(d.price || 0) }))
+    }
+  } catch {}
+
+  const cached = readCache() ?? initialProducts
+  return cached.map((p) => ({ id: p.id, price: p.price }))
+}
+
+/** Fetch light product summaries for cart drawer recommendations. */
+export async function fetchCartRecommendations(limit = 3): Promise<Product[]> {
+  try {
+    const supabase = getSupabase()
+    const { data, error } = await supabase
+      .from('apsarah_products')
+      .select('id, name, slug, price, old_price, discount_percent, images, sizes')
+      .limit(limit + 3)
+
+    if (!error && data && data.length > 0) {
+      return data.map(rowToProduct)
+    }
+  } catch {}
+
+  const cached = readCache() ?? initialProducts
+  return cached.slice(0, limit + 3)
+}
+
+/** Fetch single product by slug (deduplicated per request via React cache). */
+export const fetchProductBySlug = cache(async (slug: string): Promise<Product | null> => {
   try {
     const supabase = getSupabase()
     const { data, error } = await supabase
@@ -644,7 +726,8 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
     const cached = readCache() ?? initialProducts
     return cached.find((p) => p.slug === slug || p.id === slug) ?? null
   }
-}
+})
+
 
 /** Insert a new product into Supabase via API route. */
 export async function addProduct(newProduct: Omit<Product, 'id'> & { id?: string }): Promise<Product> {

@@ -48,6 +48,19 @@ interface Review {
   user_name?: string
 }
 
+interface PincodeResult {
+  serviceable: boolean
+  pincode?: string
+  city?: string
+  area?: string
+  state?: string
+  courierPartner?: string
+  estimatedDays?: string
+  deliveryWindow?: string
+  codAvailable?: boolean
+  message?: string
+}
+
 interface ProductDetailClientProps {
   product: Product
 }
@@ -90,7 +103,8 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   }, [selectedColor, activeColorObj])
 
   const [pincode, setPincode] = useState('')
-  const [pincodeStatus, setPincodeStatus] = useState<string | null>(null)
+  const [pincodeLoading, setPincodeLoading] = useState(false)
+  const [pincodeResult, setPincodeResult] = useState<PincodeResult | null>(null)
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false)
   
   // Accordion open states
@@ -120,30 +134,54 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   useEffect(() => {
     const supabase = createClient()
 
-    // 1. Fetch Reviews
+    // 1. Fetch Reviews for this product
     supabase
       .from('reviews')
       .select('*')
       .eq('product_id', product.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        if (data) setReviews(data as Review[])
+        if (data && data.length > 0) {
+          setReviews(data as Review[])
+        }
+        setReviewsLoading(false)
+      }, () => {
         setReviewsLoading(false)
       })
 
     // 2. Check if logged-in user is a verified purchaser
     if (user) {
+      // Check order_items table for purchases by this user
       supabase
         .from('orders')
-        .select('*')
+        .select('id, user_id, order_items(product_id, title)')
         .eq('user_id', user.id)
-        .then(({ data }) => {
-          const hasBought = data?.some((order: any) => {
-            const items = order.items || []
-            return items.some((it: any) => it.id === product.id || it.name === product.name)
-          })
-          setCanReview(Boolean(hasBought))
-          setCheckingOrder(false)
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            const hasBought = data.some((order: any) => {
+              const orderItems = order.order_items || []
+              return orderItems.some((it: any) => 
+                it.product_id === product.id || 
+                it.title?.toLowerCase() === product.name?.toLowerCase()
+              )
+            })
+            setCanReview(Boolean(hasBought))
+            setCheckingOrder(false)
+            return
+          }
+          
+          // Direct check on order_items table with user email/orders fallback
+          supabase
+            .from('order_items')
+            .select('product_id, title')
+            .eq('product_id', product.id)
+            .then(({ data: itemsData }) => {
+              setCanReview(Boolean(itemsData && itemsData.length > 0))
+              setCheckingOrder(false)
+            }, () => {
+              setCanReview(false)
+              setCheckingOrder(false)
+            })
         }, () => {
           setCanReview(false)
           setCheckingOrder(false)
@@ -152,7 +190,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
       setCanReview(false)
       setCheckingOrder(false)
     }
-  }, [product.id, user])
+  }, [product.id, product.name, user])
 
   const handlePincodeCheck = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -959,7 +997,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
               {relatedProducts.map((rel) => {
                 const relWishlisted = isInWishlist(rel.id)
                 return (
-                  <Link key={rel.id} href={`/product/${rel.slug || rel.id}`} className="mostLovedCard group">
+                  <Link key={rel.id} href={`/products/${rel.slug || rel.id}`} className="mostLovedCard group">
                     <div className="mostLovedImageArch">
                       <img src={rel.images[0]} alt={rel.name} loading="lazy" />
 

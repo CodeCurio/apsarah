@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { X, Trash2, ShoppingBag, Plus, Minus, ArrowRight, Heart, Sparkles, Check, ShieldCheck, Truck } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
-import { fetchProducts, Product, initialProducts } from '@/lib/products-store'
+import { fetchCartRecommendations, Product, initialProducts } from '@/lib/products-store'
 import { PromoCouponWidget } from '@/components/cart/PromoCouponWidget'
 
 export function CartDrawer() {
@@ -28,7 +28,7 @@ export function CartDrawer() {
 
   useEffect(() => {
     let mounted = true
-    fetchProducts().then(prods => {
+    fetchCartRecommendations(3).then(prods => {
       if (mounted) {
         setRecommendations(prods)
       }

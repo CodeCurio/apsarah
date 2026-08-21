@@ -51,7 +51,9 @@ function toDbRow(productData: any) {
   }
 }
 
-// GET /api/admin/products
+import { revalidatePath } from 'next/cache'
+
+// GET /api/admin/products (Authenticated Admin Endpoint - Fresh Data)
 export async function GET() {
   try {
     const supabase = getAdminClient()
@@ -146,6 +148,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Database Save Failed: ${error.message}` }, { status: 500 })
     }
 
+    revalidatePath('/')
+    revalidatePath('/shop')
+
     return NextResponse.json({ success: true, product: data }, { status: 201 })
   } catch (err: any) {
     console.error('Products API POST failure:', err)
@@ -207,6 +212,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: `Database Update Failed: ${error.message}` }, { status: 500 })
     }
 
+    revalidatePath('/')
+    revalidatePath('/shop')
+    if (data?.slug) {
+      revalidatePath(`/products/${data.slug}`)
+    }
+
     return NextResponse.json({ success: true, product: data })
   } catch (err: any) {
     console.error('Products API PUT failure:', err)
@@ -231,6 +242,9 @@ export async function DELETE(request: Request) {
       console.error('DB Delete error for apsarah_products:', error)
       return NextResponse.json({ error: `Database Delete Failed: ${error.message}` }, { status: 500 })
     }
+
+    revalidatePath('/')
+    revalidatePath('/shop')
 
     return NextResponse.json({ success: true, deletedId: id })
   } catch (err: any) {

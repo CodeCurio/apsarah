@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowUpRight, Sparkles, Tag, Layers, ChevronRight } from 'lucide-react'
-import { fetchProducts, Product } from '@/lib/products-store'
+import { fetchPriceTiersSummary } from '@/lib/products-store'
 
 export interface PriceTier {
   id: string
@@ -63,10 +63,10 @@ export const priceTiers: PriceTier[] = [
 ]
 
 export function ShopByPrice() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<Array<{ id: string; price: number }>>([])
 
   useEffect(() => {
-    fetchProducts().then((data) => {
+    fetchPriceTiersSummary().then((data) => {
       if (data && data.length > 0) setProducts(data)
     })
   }, [])
