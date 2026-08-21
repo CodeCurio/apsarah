@@ -34,6 +34,23 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     ],
   },
   {
+    id: 'cat-kurtas-tops',
+    name: 'Kurtas & Tops',
+    slug: 'kurtas-tops',
+    image: '/assets/mustard-yellow-geometric-printed-kurta-set-1.webp',
+    subtitle: 'TIMELESS & VERSATILE',
+    description: 'Everyday straight kurtas, festive embellished kurtis, A-line tunics, and contemporary tops.',
+    subcategories: [
+      'Straight Kurtas',
+      'A-Line Kurtis',
+      'Short Kurtis & Tunics',
+      'Embroidered Tops',
+      'Printed Daily Kurtas',
+      'Anarkali Kurtis',
+      'Silk Kurtas',
+    ],
+  },
+  {
     id: 'cat-sarees',
     name: 'Sarees',
     slug: 'sarees',
@@ -140,6 +157,24 @@ export function getCategoryAliases(categoryName: string): string[] {
   const lower = categoryName.trim().toLowerCase()
 
   if (
+    lower === 'kurtas & tops' ||
+    lower === 'kurtas and tops' ||
+    lower === 'kurtis & tops' ||
+    lower === 'kurtis and tops' ||
+    lower === 'kurtas-tops' ||
+    lower === 'kurtas' ||
+    lower === 'kurta' ||
+    lower === 'kurtis' ||
+    lower === 'kurti' ||
+    lower === 'tops' ||
+    lower === 'top' ||
+    lower === 'tunics' ||
+    lower === 'tunic'
+  ) {
+    return ['Kurtas & Tops', 'Kurtas and Tops', 'Kurtis & Tops', 'Kurtas', 'Kurta', 'Suit Sets', 'Kurta Sets']
+  }
+
+  if (
     lower === 'suits & kurta sets' ||
     lower === 'suit & kurta sets' ||
     lower === 'suits & kurtas' ||
@@ -148,17 +183,9 @@ export function getCategoryAliases(categoryName: string): string[] {
     lower === 'suits' ||
     lower === 'suit' ||
     lower === 'kurta sets' ||
-    lower === 'kurta set' ||
-    lower === 'kurtis & tops' ||
-    lower === 'kurtas & tops' ||
-    lower === 'kurtis' ||
-    lower === 'kurti' ||
-    lower === 'kurtas' ||
-    lower === 'kurta' ||
-    lower === 'tops' ||
-    lower === 'top'
+    lower === 'kurta set'
   ) {
-    return ['Suit Sets', 'Kurta Sets', 'Suits & Kurta Sets', 'Suits & Kurtas', 'Suit & Kurta Sets', 'Kurtis & Tops', 'Kurtas & Tops']
+    return ['Suit Sets', 'Kurta Sets', 'Suits & Kurta Sets', 'Suits & Kurtas', 'Suit & Kurta Sets', 'Kurtas & Tops']
   }
   if (
     lower === 'co-ord sets' ||
