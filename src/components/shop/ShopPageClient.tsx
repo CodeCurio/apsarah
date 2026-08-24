@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Filter, X, Plus, Minus, RotateCcw, Check } from 'lucide-react'
-import { Product, fetchProducts, initialProducts } from '@/lib/products-store'
+import { Product, fetchProducts, initialProducts, readCache } from '@/lib/products-store'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { MASTER_CATEGORIES, getCategoryAliases } from '@/lib/constants/categories'
 
@@ -146,7 +146,13 @@ export function ShopPageClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      if (cached && cached.length > 0) return cached
+    }
+    return initialProducts
+  })
   const [loading, setLoading] = useState(true)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [hasUserInteracted, setHasUserInteracted] = useState(false)
@@ -398,7 +404,8 @@ export function ShopPageClient() {
       {/* CATEGORY */}
       <FilterSection title="CATEGORY" defaultOpen badgeCount={selectedCategories.length}>
         {allCategories.map((cat) => {
-          const count = products.filter((p) => p.category === cat).length
+          const allowedAliases = [cat, ...getCategoryAliases(cat)].map((a) => a.toLowerCase())
+          const count = products.filter((p) => allowedAliases.includes((p.category || '').trim().toLowerCase())).length
           if (count === 0 && !selectedCategories.includes(cat)) return null
           return (
             <CheckRow

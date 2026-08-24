@@ -171,7 +171,20 @@ export function getCategoryAliases(categoryName: string): string[] {
     lower === 'tunics' ||
     lower === 'tunic'
   ) {
-    return ['Kurtas & Tops', 'Kurtas and Tops', 'Kurtis & Tops', 'Kurtas', 'Kurta', 'Suit Sets', 'Kurta Sets']
+    return [
+      'Kurtas & Tops',
+      'Kurtas and Tops',
+      'Kurtis & Tops',
+      'Kurtis and Tops',
+      'Kurtas',
+      'Kurta',
+      'Kurtis',
+      'Kurti',
+      'Tops',
+      'Top',
+      'Tunics',
+      'Tunic',
+    ]
   }
 
   if (
@@ -185,25 +198,39 @@ export function getCategoryAliases(categoryName: string): string[] {
     lower === 'kurta sets' ||
     lower === 'kurta set'
   ) {
-    return ['Suit Sets', 'Kurta Sets', 'Suits & Kurta Sets', 'Suits & Kurtas', 'Suit & Kurta Sets', 'Kurtas & Tops']
+    return [
+      'Suit Sets',
+      'Suit Set',
+      'Suits',
+      'Suit',
+      'Kurta Sets',
+      'Kurta Set',
+      'Suits & Kurta Sets',
+      'Suits & Kurtas',
+      'Suit & Kurta Sets',
+    ]
   }
   if (
     lower === 'co-ord sets' ||
     lower === 'co-ords' ||
     lower === 'co-ord' ||
     lower === 'coord sets' ||
-    lower === 'coords'
+    lower === 'coords' ||
+    lower === 'coord'
   ) {
-    return ['Co-ord Sets']
+    return ['Co-ord Sets', 'Co-ords', 'Co-ord', 'Coord Sets', 'Coords', 'Coord']
   }
-  if (lower === 'lehengas' || lower === 'lehenga') {
-    return ['Lehengas']
+  if (lower === 'lehengas' || lower === 'lehenga' || lower === 'lehenga choli' || lower === 'lehengas & cholis') {
+    return ['Lehengas', 'Lehenga', 'Lehenga Choli', 'Lehengas & Cholis']
   }
-  if (lower === 'sarees' || lower === 'saree') {
-    return ['Sarees']
+  if (lower === 'sarees' || lower === 'saree' || lower === 'saris' || lower === 'sari') {
+    return ['Sarees', 'Saree', 'Saris', 'Sari']
   }
-  if (lower === 'dresses' || lower === 'dress') {
-    return ['Dresses']
+  if (lower === 'dresses' || lower === 'dress' || lower === 'gowns' || lower === 'gown') {
+    return ['Dresses', 'Dress', 'Gowns', 'Gown']
+  }
+  if (lower === 'bottoms' || lower === 'pants' || lower === 'palazzos' || lower === 'trousers') {
+    return ['Bottoms', 'Pants', 'Palazzos', 'Trousers']
   }
 
   return [categoryName]

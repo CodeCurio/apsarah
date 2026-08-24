@@ -3,12 +3,21 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react'
-import { fetchFeaturedProducts, initialProducts, Product } from '@/lib/products-store'
+import { fetchFeaturedProducts, initialProducts, Product, readCache } from '@/lib/products-store'
 import { useWishlist } from '@/context/WishlistContext'
 
 export function MostLovedSection() {
   const trackRef = useRef<HTMLDivElement>(null)
-  const [products, setProducts] = useState<Product[]>(initialProducts.slice(0, 6))
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      if (cached && cached.length > 0) {
+        const featured = cached.filter((p) => p.isBestseller)
+        return (featured.length > 0 ? featured : cached).slice(0, 6)
+      }
+    }
+    return initialProducts.slice(0, 6)
+  })
   const { isInWishlist, toggleWishlist } = useWishlist()
 
   useEffect(() => {

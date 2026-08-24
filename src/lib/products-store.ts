@@ -106,9 +106,9 @@ function productToRow(p: Omit<Product, 'id'> & { id?: string }) {
 }
 
 // ─── localStorage cache helpers ───────────────────────────────────────────────
-const CACHE_KEY = 'apsarah_products_cache_v2'
+export const CACHE_KEY = 'apsarah_products_cache_v2'
 
-function readCache(): Product[] | null {
+export function readCache(): Product[] | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem(CACHE_KEY)
@@ -117,7 +117,7 @@ function readCache(): Product[] | null {
   return null
 }
 
-function writeCache(products: Product[]): void {
+export function writeCache(products: Product[]): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(products))
