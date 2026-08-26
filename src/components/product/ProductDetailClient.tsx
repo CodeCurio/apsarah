@@ -329,12 +329,12 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   )}`
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] text-[#2B1713] pt-24 pb-32">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 space-y-12">
+    <div className="min-h-screen bg-[#FAF6F0] text-[#2B1713] pt-3 sm:pt-6 md:pt-8 pb-24">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-8 space-y-3.5 md:space-y-8">
         
         {/* Top Breadcrumb & Share Action */}
-        <div className="flex items-center justify-between border-b border-[#E2D4C7]/60 pb-4 text-xs">
-          <nav className="text-slate-500 flex items-center space-x-2 overflow-x-auto whitespace-nowrap">
+        <div className="flex items-center justify-between border-b border-[#E2D4C7]/60 pb-2.5 text-xs gap-2">
+          <nav className="text-slate-500 flex items-center space-x-2 overflow-x-auto whitespace-nowrap scrollbar-none">
             <Link href="/" className="hover:text-[#8F1020] transition-colors">Home</Link>
             <span>/</span>
             <Link href="/shop" className="hover:text-[#8F1020] transition-colors">Shop</Link>
@@ -343,21 +343,21 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
               {product.category}
             </Link>
             <span>/</span>
-            <span className="text-[#2B1713] font-bold truncate max-w-[220px] sm:max-w-none">{product.name}</span>
+            <span className="text-[#2B1713] font-bold truncate max-w-[180px] sm:max-w-none">{product.name}</span>
           </nav>
 
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E2D4C7] hover:border-[#8F1020] text-[#2B1713] font-bold text-xs shadow-2xs transition-all shrink-0 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#E2D4C7] hover:border-[#8F1020] text-[#2B1713] font-bold text-[11px] sm:text-xs shadow-2xs transition-all shrink-0 cursor-pointer"
           >
             <Share2 className="w-3.5 h-3.5 text-[#8F1020]" />
-            <span>Share Ensemble</span>
+            <span>Share</span>
           </button>
         </div>
 
         {/* Top Product Layout: Sticky Gallery (Left) + Details (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-10 xl:gap-14 items-start">
           
           {/* LEFT: Sticky Multi-Image Gallery */}
           <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4 lg:sticky lg:top-28 z-10">

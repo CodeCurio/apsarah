@@ -10,11 +10,17 @@
 import { createClient } from '@supabase/supabase-js'
 
 // ─── Supabase browser client ──────────────────────────────────────────────────
+// ─── Supabase client (Server & Browser resilient) ─────────────────────────────
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://lgknzhwurdogezbvyjst.supabase.co'
+  const key =
+    (typeof window === 'undefined' ? process.env.SUPABASE_SERVICE_ROLE_KEY : null) ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxna256aHd1cmRvZ2V6YnZ5anN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNzUxODYsImV4cCI6MjEwMDc1MTE4Nn0.2Hk9JbA7v-iHw94iNq5u9W3N_5fV5v-8nO3iK3N9o0M'
+
+  return createClient(url, key, {
+    auth: { persistSession: typeof window !== 'undefined' },
+  })
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -124,7 +130,6 @@ export function writeCache(products: Product[]): void {
   } catch {}
 }
 
-// ─── Direct Supabase Storage (No Hardcoded Mock Products) ───────────────────
 export const initialProducts: Product[] = []
 
 import { cache } from 'react'
@@ -134,7 +139,7 @@ let inFlightFetchPromise: Promise<Product[]> | null = null
 let memoryCache: { products: Product[]; timestamp: number } | null = null
 const MEMORY_CACHE_TTL_MS = 60 * 1000 // 1 minute in-memory cache
 
-/** Fetch all products from Supabase/API. Falls back to cache, then initialProducts. */
+/** Fetch all products from Supabase/API dynamically with fast caching. */
 export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
   const now = Date.now()
   if (!forceRefresh && memoryCache && now - memoryCache.timestamp < MEMORY_CACHE_TTL_MS) {
@@ -147,22 +152,7 @@ export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
 
   inFlightFetchPromise = (async () => {
     try {
-      // 1. Try server API route first (uses Next.js / browser revalidation cache)
-      const res = await fetch('/api/admin/products', {
-        next: { revalidate: 60, tags: ['products'] },
-      } as RequestInit).catch(() => null)
-
-      if (res && res.ok) {
-        const json = await res.json()
-        if (json.products && json.products.length > 0) {
-          const products = json.products.map(rowToProduct)
-          memoryCache = { products, timestamp: Date.now() }
-          writeCache(products)
-          return products
-        }
-      }
-
-      // 2. Direct Supabase fallback
+      // 1. Direct Supabase query (Ultra fast on both server and client)
       const supabase = getSupabase()
       const { data, error } = await supabase
         .from('apsarah_products')
@@ -176,15 +166,29 @@ export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
         return products
       }
 
-      throw new Error('No DB data returned')
-    } catch {
-      // Try local cache first
+      // 2. Client-side fallback to API route if direct query failed in browser
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/admin/products').catch(() => null)
+        if (res && res.ok) {
+          const json = await res.json()
+          if (json.products && json.products.length > 0) {
+            const products = json.products.map(rowToProduct)
+            memoryCache = { products, timestamp: Date.now() }
+            writeCache(products)
+            return products
+          }
+        }
+      }
+
+      throw new Error(error?.message || 'No DB data returned')
+    } catch (err) {
+      // Fallback to local storage cache if available
       const cached = readCache()
       if (cached && cached.length > 0) {
         memoryCache = { products: cached, timestamp: Date.now() }
         return cached
       }
-      return initialProducts
+      return []
     } finally {
       inFlightFetchPromise = null
     }
@@ -234,22 +238,63 @@ export async function fetchCartRecommendations(limit = 3): Promise<Product[]> {
   return cached.slice(0, limit)
 }
 
-/** Fetch single product by slug (deduplicated per request via React cache). */
+/** Fetch single product by slug dynamically from Supabase (deduplicated via React cache). */
 export const fetchProductBySlug = cache(async (slug: string): Promise<Product | null> => {
+  if (!slug) return null
+  const decoded = decodeURIComponent(slug).trim()
+  const lowerSlug = decoded.toLowerCase()
+
   try {
     const supabase = getSupabase()
+
+    // 1. Direct match by exact slug or ID or lower slug
     const { data, error } = await supabase
       .from('apsarah_products')
       .select('*')
-      .eq('slug', slug)
-      .single()
+      .or(`slug.eq."${decoded}",slug.eq."${lowerSlug}",id.eq."${decoded}"`)
+      .limit(1)
+      .maybeSingle()
 
-    if (error) throw error
-    return rowToProduct(data)
-  } catch {
-    // Fallback to cache
+    if (!error && data) {
+      return rowToProduct(data)
+    }
+
+    // 2. Fallback: try case-insensitive ILIKE search
+    const { data: ilikeData, error: ilikeError } = await supabase
+      .from('apsarah_products')
+      .select('*')
+      .ilike('slug', `%${lowerSlug}%`)
+      .limit(1)
+      .maybeSingle()
+
+    if (!ilikeError && ilikeData) {
+      return rowToProduct(ilikeData)
+    }
+
+    // 3. Fallback: fetch all active products from DB and find closest match
+    const all = await fetchProducts()
+    const found = all.find(
+      (p) =>
+        p.slug.toLowerCase() === lowerSlug ||
+        p.id === decoded ||
+        p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === lowerSlug ||
+        p.slug.toLowerCase().includes(lowerSlug) ||
+        lowerSlug.includes(p.slug.toLowerCase())
+    )
+    if (found) return found
+
+    return null
+  } catch (err) {
+    console.error('fetchProductBySlug error:', err)
     const cached = readCache() ?? []
-    return cached.find((p) => p.slug === slug || p.id === slug) ?? null
+    return (
+      cached.find(
+        (p) =>
+          p.slug.toLowerCase() === lowerSlug ||
+          p.id === decoded ||
+          p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === lowerSlug
+      ) ?? null
+    )
   }
 })
 

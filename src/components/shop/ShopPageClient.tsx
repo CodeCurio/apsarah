@@ -588,50 +588,52 @@ export function ShopPageClient() {
   )
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0]/30 text-[#2B1713] pb-20">
+    <div className="min-h-screen bg-[#FAF6F0]/30 text-[#2B1713] pb-20 w-full overflow-x-hidden">
       {/* ── Top Header Bar ─────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-[#e2d4c7] sticky top-0 z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white border-b border-[#e2d4c7] sticky top-0 z-30 shadow-2xs w-full">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3 w-full">
           {/* Title and Count */}
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-xl font-serif font-bold text-[#2B1713] tracking-tight">LUXURY COLLECTION</h1>
+          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
+            <h1 className="text-sm sm:text-base md:text-xl font-serif font-bold text-[#2B1713] tracking-tight uppercase truncate">
+              LUXURY COLLECTION
+            </h1>
             {loading && products.length === 0 ? (
-              <span className="text-xs font-semibold text-slate-400 bg-[#FAF6F0] px-3 py-1 rounded-full border border-[#e2d4c7] animate-pulse">
-                Loading designs...
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 bg-[#FAF6F0] px-2.5 py-0.5 sm:py-1 rounded-full border border-[#e2d4c7] animate-pulse shrink-0">
+                Loading...
               </span>
             ) : (
-              <span className="text-xs font-semibold text-slate-500 bg-[#FAF6F0] px-2.5 py-1 rounded-full border border-[#e2d4c7]">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'Design Available' : 'Designs Available'}
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-600 bg-[#FAF6F0] px-2.5 py-0.5 sm:py-1 rounded-full border border-[#e2d4c7] shrink-0">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'Design' : 'Designs'}
               </span>
             )}
           </div>
 
           {/* Right Controls: Sort & Mobile Filter Toggle */}
-          <div className="flex items-center gap-3 justify-between md:justify-end">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-[11px]">Sort By:</span>
+          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-end">
+            <div className="flex-1 md:flex-none flex items-center gap-1.5 text-xs min-w-0">
+              <span className="hidden sm:inline text-slate-500 font-bold uppercase tracking-wider text-[10px] shrink-0">Sort By:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-[#FAF6F0] border border-[#e2d4c7] rounded-xl px-3 py-1.5 font-bold text-xs text-[#2B1713] outline-none focus:border-[#8F1020] cursor-pointer shadow-2xs transition-all"
+                className="w-full md:w-auto bg-[#FAF6F0] border border-[#e2d4c7] rounded-xl px-2.5 py-1.5 font-bold text-xs text-[#2B1713] outline-none focus:border-[#8F1020] cursor-pointer shadow-2xs transition-all truncate"
               >
                 <option value="featured">✨ Bestsellers & Featured</option>
                 <option value="price-low">💸 Price: Low to High</option>
                 <option value="price-high">💎 Price: High to Low</option>
                 <option value="rating">★ Top Rated Designs</option>
-                <option value="discount">🔥 Highest Discount (% OFF)</option>
+                <option value="discount">🔥 Highest Discount</option>
               </select>
             </div>
 
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
-              className="md:hidden flex items-center gap-1.5 px-3.5 py-2 bg-[#8F1020] text-white text-xs font-bold rounded-xl shadow-md"
+              className="md:hidden flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#8F1020] hover:bg-[#590924] text-white text-xs font-bold rounded-xl shadow-md shrink-0 cursor-pointer"
             >
               <Filter className="w-3.5 h-3.5" />
               <span>Filters</span>
               {activeCount > 0 && (
-                <span className="bg-white text-[#8F1020] rounded-full w-4 h-4 text-[10px] font-extrabold flex items-center justify-center ml-1">
+                <span className="bg-white text-[#8F1020] rounded-full w-4 h-4 text-[10px] font-extrabold flex items-center justify-center ml-0.5">
                   {activeCount}
                 </span>
               )}
@@ -641,68 +643,68 @@ export function ShopPageClient() {
 
         {/* Active Filter Chips Bar */}
         {hasUserInteracted && activeCount > 0 && (
-          <div className="bg-[#FAF6F0] border-t border-[#e2d4c7]/50 py-2.5 px-4">
-            <div className="max-w-7xl mx-auto flex items-center gap-2 flex-wrap text-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8f1020] mr-1">Active Filters:</span>
+          <div className="bg-[#FAF6F0] border-t border-[#e2d4c7]/50 py-2 px-3 sm:px-4 w-full overflow-hidden">
+            <div className="max-w-7xl mx-auto flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#8f1020] mr-1">Active:</span>
 
               {urlQueryFilter && !selectedCategories.some((c) => c.toLowerCase() === urlQueryFilter.toLowerCase()) && (
-                <span className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Query: <strong className="text-[#8f1020]">{urlQueryFilter}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => setUrlQueryFilter('')} />
                 </span>
               )}
 
               {selectedCategories.map((c) => (
-                <span key={c} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={c} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Category: <strong className="text-[#8f1020]">{c}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedCategories, c, setSelectedCategories)} />
                 </span>
               ))}
 
               {selectedPriceRange !== 'All' && (
-                <span className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Price: <strong className="text-[#8f1020]">{priceRanges.find((p) => p.value === selectedPriceRange)?.label}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => setSelectedPriceRange('All')} />
                 </span>
               )}
 
               {selectedSizes.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={s} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Size: <strong className="text-[#8f1020]">{s}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedSizes, s, setSelectedSizes)} />
                 </span>
               ))}
 
               {selectedColorFamilies.map((col) => (
-                <span key={col} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={col} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Color: <strong className="text-[#8f1020]">{col}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedColorFamilies, col, setSelectedColorFamilies)} />
                 </span>
               ))}
 
               {selectedFabrics.map((fab) => (
-                <span key={fab} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={fab} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Fabric: <strong className="text-[#8f1020]">{fab}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedFabrics, fab, setSelectedFabrics)} />
                 </span>
               ))}
 
               {selectedStyles.map((st) => (
-                <span key={st} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={st} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Style: <strong className="text-[#8f1020]">{st}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedStyles, st, setSelectedStyles)} />
                 </span>
               ))}
 
               {selectedOccasions.map((occ) => (
-                <span key={occ} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={occ} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Occasion: <strong className="text-[#8f1020]">{occ}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedOccasions, occ, setSelectedOccasions)} />
                 </span>
               ))}
 
               {selectedPatterns.map((pat) => (
-                <span key={pat} className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-xs">
+                <span key={pat} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-white border border-[#e2d4c7] rounded-full text-slate-800 font-semibold shadow-2xs text-[11px]">
                   Work: <strong className="text-[#8f1020]">{pat}</strong>
                   <X className="w-3.5 h-3.5 hover:text-rose-600 cursor-pointer ml-0.5" onClick={() => toggleArr(selectedPatterns, pat, setSelectedPatterns)} />
                 </span>
@@ -711,7 +713,7 @@ export function ShopPageClient() {
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="ml-auto text-xs font-bold text-[#8F1020] hover:underline flex items-center gap-1 bg-white px-3 py-1 rounded-full border border-rose-200 shadow-2xs"
+                className="ml-auto text-[11px] font-bold text-[#8F1020] hover:underline flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-full border border-rose-200 shadow-2xs cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" /> Clear All
               </button>
@@ -721,16 +723,16 @@ export function ShopPageClient() {
       </div>
 
       {/* ── Main Layout: Sidebar + Grid ─────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 py-8 flex items-start gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 flex items-start gap-6 md:gap-8 w-full">
         {/* Desktop Sidebar */}
         <aside className="hidden md:block w-72 shrink-0 sticky top-40 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 custom-scrollbar">
           {filterSidebar}
         </aside>
 
         {/* Product Grid / Results */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0 w-full">
           {loading && products.length === 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <ProductCardSkeleton key={idx} />
               ))}
@@ -749,14 +751,14 @@ export function ShopPageClient() {
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#8F1020] hover:bg-[#590924] text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#8F1020] hover:bg-[#590924] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
                 Reset All Filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-8 md:gap-x-6 md:gap-y-10 w-full">
               {filteredProducts.map((prod) => (
                 <ProductCard key={prod.id} product={prod} />
               ))}
