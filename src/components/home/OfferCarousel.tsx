@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Sparkles, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles, ArrowRight, ChevronLeft, ChevronRight, Crown } from 'lucide-react'
 
 export interface CampaignOffer {
   id: number
@@ -65,15 +65,14 @@ export const campaignOffers: CampaignOffer[] = [
 
 export function OfferCarousel() {
   const [activeIdx, setActiveIdx] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
+  const touchStartX = useRef<number | null>(null)
 
   useEffect(() => {
-    if (isPaused) return
     const timer = setInterval(() => {
       setActiveIdx((prev) => (prev + 1) % campaignOffers.length)
-    }, 4000)
+    }, 2000)
     return () => clearInterval(timer)
-  }, [isPaused])
+  }, [activeIdx])
 
   const nextSlide = () => {
     setActiveIdx((prev) => (prev + 1) % campaignOffers.length)
@@ -83,11 +82,27 @@ export function OfferCarousel() {
     setActiveIdx((prev) => (prev === 0 ? campaignOffers.length - 1 : prev - 1))
   }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const touchEndX = e.changedTouches[0].clientX
+    const diff = touchStartX.current - touchEndX
+    if (diff > 40) {
+      nextSlide()
+    } else if (diff < -40) {
+      prevSlide()
+    }
+    touchStartX.current = null
+  }
+
   return (
     <div
       className="offerCarousel"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="offerCarouselViewport">
         {campaignOffers.map((item, idx) => {
@@ -107,6 +122,7 @@ export function OfferCarousel() {
                 />
                 <div className="offerImageShade" />
                 <span className="offerImageLabel">
+                  <Crown className="w-3 h-3 text-[#efbd3b] inline mr-1" />
                   APSARAH • EDIT 0{idx + 1}
                 </span>
               </div>
@@ -123,18 +139,21 @@ export function OfferCarousel() {
                     {item.title} <em>{item.accent}</em>
                   </h2>
                   <p>{item.description}</p>
-                  <div className="offerDeal">{item.offer}</div>
-                  <Link href="#shop" className="offerCTA">
-                    <span>{item.button}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+                  
+                  <div className="flex items-center gap-3 flex-wrap pt-1">
+                    <span className="offerDeal">{item.offer}</span>
+                    <Link href="/shop" className="offerCTA">
+                      <span>{item.button}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </article>
           )
         })}
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows (Desktop) */}
         <button
           type="button"
           className="offerArrow offerArrowLeft"

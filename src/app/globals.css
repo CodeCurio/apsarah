@@ -1508,36 +1508,37 @@ body {
 .offerDeal {
   display: inline-block;
   padding: 6px 14px;
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 30px;
-  font-size: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50px;
+  font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  margin-bottom: 28px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
 }
 
 .offerCTA {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 46px;
-  padding: 0 26px;
-  background: #fff;
+  gap: 8px;
+  height: 42px;
+  padding: 0 22px;
+  background: #ffffff;
   color: #2b1713;
   text-decoration: none;
-  border-radius: 4px;
+  border-radius: 50px;
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  transition: transform 0.25s ease, background 0.25s ease, color 0.25s ease;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .offerCTA:hover {
   transform: translateY(-2px);
   background: #efbd3b;
   color: #2b1713;
+  box-shadow: 0 12px 25px rgba(239, 189, 59, 0.35);
 }
 
 .offerArrow {
@@ -1612,14 +1613,76 @@ body {
 }
 
 @media (max-width: 900px) {
-  .offerSlide {
-    grid-template-columns: 1fr;
-  }
-  .offerVisual {
-    display: none;
+  .offerCarousel {
+    padding: 28px 16px;
   }
   .offerCarouselViewport {
-    height: 420px;
+    height: 470px;
+    min-height: 470px;
+    border-radius: 24px;
+    box-shadow: 0 15px 45px rgba(45, 17, 12, 0.15);
+  }
+  .offerSlide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .offerVisual {
+    display: block;
+    height: 220px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .offerVisual img {
+    object-position: top center;
+  }
+  .offerImageShade {
+    background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+  }
+  .offerContent {
+    flex: 1;
+    padding: 16px 18px 46px 18px;
+    justify-content: flex-start;
+  }
+  .offerContentInner h2 {
+    font-size: 26px;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .offerContentInner p {
+    font-size: 12.5px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    opacity: 0.9;
+  }
+  .offerEyebrow {
+    font-size: 8.5px;
+    margin-bottom: 8px;
+  }
+  .offerDeal {
+    font-size: 8px;
+    padding: 4px 10px;
+    margin-bottom: 12px;
+    width: fit-content;
+    display: inline-block;
+  }
+  .offerCTA {
+    height: 38px;
+    padding: 0 18px;
+    font-size: 9px;
+    width: fit-content;
+  }
+  .offerArrow {
+    display: none;
+  }
+  .offerNavigation {
+    bottom: 12px;
+    padding: 4px 12px;
+    gap: 10px;
+  }
+  .offerWatermark {
+    display: none;
   }
 }
 
