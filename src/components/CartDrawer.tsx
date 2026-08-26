@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { X, Trash2, ShoppingBag, Plus, Minus, ArrowRight, Heart, Sparkles, Check, ShieldCheck, Truck } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
-import { fetchCartRecommendations, Product, initialProducts } from '@/lib/products-store'
+import { fetchCartRecommendations, Product } from '@/lib/products-store'
 import { PromoCouponWidget } from '@/components/cart/PromoCouponWidget'
 
 export function CartDrawer() {
@@ -29,11 +29,11 @@ export function CartDrawer() {
   useEffect(() => {
     let mounted = true
     fetchCartRecommendations(3).then(prods => {
-      if (mounted) {
+      if (mounted && prods) {
         setRecommendations(prods)
       }
     }).catch(() => {
-      if (mounted) setRecommendations(initialProducts)
+      if (mounted) setRecommendations([])
     })
     return () => { mounted = false }
   }, [])
@@ -42,7 +42,7 @@ export function CartDrawer() {
 
   // Filter out items already in cart for recommendations
   const cartProductIds = new Set(items.map(i => i.product.id))
-  const suggestedProducts = (recommendations.length > 0 ? recommendations : initialProducts)
+  const suggestedProducts = (recommendations || [])
     .filter(p => !cartProductIds.has(p.id))
     .slice(0, 3)
 

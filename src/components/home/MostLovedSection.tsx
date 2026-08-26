@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react'
-import { fetchFeaturedProducts, initialProducts, Product, readCache } from '@/lib/products-store'
+import { fetchFeaturedProducts, Product, readCache } from '@/lib/products-store'
 import { useWishlist } from '@/context/WishlistContext'
 
 export function MostLovedSection() {
@@ -16,7 +16,7 @@ export function MostLovedSection() {
         return (featured.length > 0 ? featured : cached).slice(0, 6)
       }
     }
-    return initialProducts.slice(0, 6)
+    return []
   })
   const { isInWishlist, toggleWishlist } = useWishlist()
 
@@ -72,58 +72,68 @@ export function MostLovedSection() {
 
         {/* Product Cards Grid / Track with signature curve layout */}
         <div className="mostLovedGrid" ref={trackRef}>
-          {products.map((prod) => {
-            const isWishlisted = isInWishlist(prod.id)
-            const productSlug = prod.slug || prod.id
-            return (
-              <Link key={prod.id} href={`/products/${productSlug}`} className="mostLovedCard group">
-                <div className="relative w-full">
-                  <div className="mostLovedImageArch">
-                    <img src={prod.images[0]} alt={prod.name} loading="lazy" />
-                    
-                    {prod.discountPercent > 0 && (
-                      <span className="mostLovedBadge">SALE • {prod.discountPercent}% OFF</span>
-                    )}
+          {products.length === 0 ? (
+            Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="mostLovedCard animate-pulse space-y-3">
+                <div className="mostLovedImageArch bg-[#FAF6F0] w-full aspect-[3/4]" />
+                <div className="h-4 bg-[#f0e7dc] rounded w-3/4" />
+                <div className="h-3 bg-[#ede2d5] rounded w-1/2" />
+              </div>
+            ))
+          ) : (
+            products.map((prod) => {
+              const isWishlisted = isInWishlist(prod.id)
+              const productSlug = prod.slug || prod.id
+              return (
+                <Link key={prod.id} href={`/products/${productSlug}`} className="mostLovedCard group">
+                  <div className="relative w-full">
+                    <div className="mostLovedImageArch">
+                      <img src={prod.images[0]} alt={prod.name} loading="lazy" />
+                      
+                      {prod.discountPercent > 0 && (
+                        <span className="mostLovedBadge">SALE • {prod.discountPercent}% OFF</span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      aria-label="Wishlist"
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        await toggleWishlist(prod.id, prod.name)
+                      }}
+                      className="mostLovedWishlist"
+                    >
+                      <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-[#8f1020] text-[#8f1020]' : 'text-slate-700'}`} />
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    onClick={async (e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      await toggleWishlist(prod.id, prod.name)
-                    }}
-                    className="mostLovedWishlist"
-                  >
-                    <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-[#8f1020] text-[#8f1020]' : 'text-slate-700'}`} />
-                  </button>
-                </div>
-
-                <div className="mostLovedMetaRow">
-                  <span className="mostLovedCategory">{prod.category.toUpperCase()}</span>
-                  <span className="mostLovedRating">
-                    <Star className="w-3 h-3 fill-[#EFBD3B] text-[#EFBD3B] inline mr-1" />
-                    {prod.rating || '4.9'}
-                  </span>
-                </div>
-
-                <h3 className="mostLovedTitle">{prod.name}</h3>
-
-                <div className="mostLovedPriceRow">
-                  <span className="mostLovedPrice">₹{prod.price.toLocaleString()}</span>
-                  {prod.oldPrice > prod.price && (
-                    <del className="mostLovedOldPrice">₹{prod.oldPrice.toLocaleString()}</del>
-                  )}
-                  {prod.discountPercent > 0 && (
-                    <span className="mostLovedDiscountTag font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
-                      SAVE ₹{(prod.oldPrice - prod.price).toLocaleString()}
+                  <div className="mostLovedMetaRow">
+                    <span className="mostLovedCategory">{prod.category.toUpperCase()}</span>
+                    <span className="mostLovedRating">
+                      <Star className="w-3 h-3 fill-[#EFBD3B] text-[#EFBD3B] inline mr-1" />
+                      {prod.rating || '4.9'}
                     </span>
-                  )}
-                </div>
-              </Link>
-            )
-          })}
+                  </div>
+
+                  <h3 className="mostLovedTitle">{prod.name}</h3>
+
+                  <div className="mostLovedPriceRow">
+                    <span className="mostLovedPrice">₹{prod.price.toLocaleString()}</span>
+                    {prod.oldPrice > prod.price && (
+                      <del className="mostLovedOldPrice">₹{prod.oldPrice.toLocaleString()}</del>
+                    )}
+                    {prod.discountPercent > 0 && (
+                      <span className="mostLovedDiscountTag font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+                        SAVE ₹{(prod.oldPrice - prod.price).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )
+            })
+          )}
         </div>
       </div>
     </section>

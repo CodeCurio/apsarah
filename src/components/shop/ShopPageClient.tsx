@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Filter, X, Plus, Minus, RotateCcw, Check } from 'lucide-react'
-import { Product, fetchProducts, initialProducts, readCache } from '@/lib/products-store'
+import { Product, fetchProducts, readCache } from '@/lib/products-store'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { MASTER_CATEGORIES, getCategoryAliases } from '@/lib/constants/categories'
 
@@ -142,18 +142,43 @@ const WORK_AND_PATTERNS: FilterOption[] = [
   { label: 'Minimalist & Solid', keywords: ['solid', 'plain', 'minimalist', 'classic', 'pleated', 'structured'] },
 ]
 
+// ─── Luxury Skeleton Card ───────────────────────────────────────────────────
+function ProductCardSkeleton() {
+  return (
+    <div className="flex flex-col space-y-3 animate-pulse">
+      <div className="aspect-[3/4] w-full bg-[#FAF6F0] rounded-2xl border border-[#e2d4c7]/40 relative overflow-hidden">
+        <div className="w-full h-full bg-gradient-to-b from-[#FAF6F0] to-[#f3ebe1]" />
+      </div>
+      <div className="space-y-2 px-1">
+        <div className="h-4 bg-[#ede2d5] rounded-md w-3/4" />
+        <div className="h-3 bg-[#f0e7dc] rounded-md w-1/2" />
+        <div className="h-4 bg-[#ede2d5] rounded-md w-1/3 pt-1" />
+      </div>
+    </div>
+  )
+}
+
 export function ShopPageClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  
   const [products, setProducts] = useState<Product[]>(() => {
     if (typeof window !== 'undefined') {
       const cached = readCache()
       if (cached && cached.length > 0) return cached
     }
-    return initialProducts
+    return []
   })
-  const [loading, setLoading] = useState(true)
+  
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      return !(cached && cached.length > 0)
+    }
+    return true
+  })
+  
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [hasUserInteracted, setHasUserInteracted] = useState(false)
   const [lastSearchParamsStr, setLastSearchParamsStr] = useState<string>(() => searchParams?.toString() || '')
@@ -570,9 +595,15 @@ export function ShopPageClient() {
           {/* Title and Count */}
           <div className="flex items-baseline gap-3">
             <h1 className="text-xl font-serif font-bold text-[#2B1713] tracking-tight">LUXURY COLLECTION</h1>
-            <span className="text-xs font-semibold text-slate-500 bg-[#FAF6F0] px-2.5 py-1 rounded-full border border-[#e2d4c7]">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'Design Available' : 'Designs Available'}
-            </span>
+            {loading && products.length === 0 ? (
+              <span className="text-xs font-semibold text-slate-400 bg-[#FAF6F0] px-3 py-1 rounded-full border border-[#e2d4c7] animate-pulse">
+                Loading designs...
+              </span>
+            ) : (
+              <span className="text-xs font-semibold text-slate-500 bg-[#FAF6F0] px-2.5 py-1 rounded-full border border-[#e2d4c7]">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'Design Available' : 'Designs Available'}
+              </span>
+            )}
           </div>
 
           {/* Right Controls: Sort & Mobile Filter Toggle */}
@@ -699,9 +730,10 @@ export function ShopPageClient() {
         {/* Product Grid / Results */}
         <main className="flex-1">
           {loading && products.length === 0 ? (
-            <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-500">
-              <div className="w-8 h-8 border-3 border-[#8F1020] border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm font-medium">Loading luxury catalog...</p>
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <ProductCardSkeleton key={idx} />
+              ))}
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="py-20 px-4 text-center max-w-md mx-auto space-y-6 bg-white rounded-2xl border border-[#e2d4c7] shadow-xs p-8">
