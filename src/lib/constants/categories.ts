@@ -71,7 +71,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     id: 'cat-lehengas',
     name: 'Lehengas',
     slug: 'lehengas',
-    image: '/assets/navy-blue-embroidered-zari-lehenga-set-2.webp',
+    image: '/assets/navy-blue-embroidered-zari-lehenga-set-1.webp',
     subtitle: 'CELEBRATION OPULENCE',
     description: 'Heritage bridal lehengas, crop top skirts, and drape sets embellished with zari and gota patti.',
     subcategories: [
@@ -86,7 +86,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     id: 'cat-coord-sets',
     name: 'Co-ord Sets',
     slug: 'co-ord-sets',
-    image: '/assets/wine-purple-velvet-crop-top-palazzo-set-2.webp',
+    image: '/assets/off-white-copper-leaf-handpainted-coord-set-1.webp',
     subtitle: 'MATCHED PERFECTION',
     description: 'Effortless printed tunic sets, velvet co-ords, and modern Indian two-piece outfits.',
     subcategories: [
@@ -101,7 +101,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     id: 'cat-dresses',
     name: 'Dresses',
     slug: 'dresses',
-    image: '/assets/rust-orange-floral-embroidered-anarkali-set-2.webp',
+    image: '/assets/olive-green-pleated-anarkali-kurta-set-1.webp',
     subtitle: 'FESTIVE & FUSION',
     description: 'Statement gowns, printed slip dresses, and flared fusion silhouettes designed for memorable moments.',
     subcategories: [

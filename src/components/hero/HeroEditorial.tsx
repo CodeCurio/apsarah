@@ -5,16 +5,19 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export const heroBanners = [
   {
-    image: "/assets/banner design 2.png",
-    alt: "Apsarah Banner 1",
+    desktopImage: '/assets/banner design 2.png',
+    mobileImage: '/assets/Mobile-banner-1.png',
+    alt: 'Apsarah Festive Collection Banner 1',
   },
   {
-    image: "/assets/banner design 3.png",
-    alt: "Apsarah Banner 2",
+    desktopImage: '/assets/banner design 3.png',
+    mobileImage: '/assets/Mobile-banner-2.png',
+    alt: 'Apsarah Festive Collection Banner 2',
   },
   {
-    image: "/assets/banner design 4.png",
-    alt: "Apsarah Banner 3",
+    desktopImage: '/assets/banner design 4.png',
+    mobileImage: '/assets/Mobile-banner-3.png',
+    alt: 'Apsarah Festive Collection Banner 3',
   },
 ]
 
@@ -38,22 +41,25 @@ export function HeroEditorial() {
 
   return (
     <section className="relative w-full overflow-hidden bg-[#25100c]">
-      {/* Banner Container matching exact 1920x648 aspect ratio */}
-      <div className="relative w-full aspect-[1920/648]">
+      {/* Responsive Aspect Ratio: 1024/1536 (2:3) on mobile, 2087/753 on desktop */}
+      <div className="relative w-full aspect-[1024/1536] md:aspect-[2087/753]">
         {heroBanners.map((banner, idx) => (
           <div
-            key={banner.image}
+            key={banner.desktopImage}
             className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
               idx === currentSlide
                 ? 'opacity-100 z-10 pointer-events-auto'
                 : 'opacity-0 z-0 pointer-events-none'
             }`}
           >
-            <img
-              src={banner.image}
-              alt={banner.alt}
-              className="w-full h-full object-cover select-none"
-            />
+            <picture className="w-full h-full block">
+              <source media="(max-width: 768px)" srcSet={banner.mobileImage} />
+              <img
+                src={banner.desktopImage}
+                alt={banner.alt}
+                className="w-full h-full object-cover select-none"
+              />
+            </picture>
           </div>
         ))}
 
