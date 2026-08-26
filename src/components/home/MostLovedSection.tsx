@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react'
-import { fetchFeaturedProducts, Product, readCache } from '@/lib/products-store'
+import { fetchFeaturedProducts, fetchProducts, Product, readCache } from '@/lib/products-store'
 import { useWishlist } from '@/context/WishlistContext'
 
 export function MostLovedSection() {
