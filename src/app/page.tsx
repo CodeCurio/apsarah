@@ -1,6 +1,7 @@
 import { HeroEditorial } from '@/components/hero/HeroEditorial'
 import { CategoryShowcase } from '@/components/home/CategoryShowcase'
 import { MostLovedSection } from '@/components/home/MostLovedSection'
+import { BestsellerSection } from '@/components/home/BestsellerSection'
 import { OfferCarousel } from '@/components/home/OfferCarousel'
 import { ShopByPrice } from '@/components/home/ShopByPrice'
 
@@ -16,10 +17,13 @@ export default function Home() {
       {/* 3. Most Loved Products Rail */}
       <MostLovedSection />
 
-      {/* 4. Campaign & Offer Carousel */}
+      {/* 4. Bestseller Showcase Grid with Category Filter Tabs */}
+      <BestsellerSection />
+
+      {/* 5. Campaign & Offer Carousel */}
       <OfferCarousel />
 
-      {/* 5. Shop By Price */}
+      {/* 6. Shop By Price */}
       <ShopByPrice />
     </main>
   )
