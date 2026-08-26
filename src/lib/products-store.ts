@@ -193,35 +193,27 @@ export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
   return inFlightFetchPromise
 }
 
-/** Fetch only featured/bestseller products with minimal columns for homepage rails. */
+/** Fetch only featured/bestseller products with guaranteed fallback. */
 export async function fetchFeaturedProducts(limit = 6): Promise<Product[]> {
   try {
-    const supabase = getSupabase()
-    const { data, error } = await supabase
-      .from('apsarah_products')
-      .select('id, name, slug, category, sub_category, price, old_price, discount_percent, rating, review_count, images, is_bestseller, is_new_arrival')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-
-    if (!error && data && data.length > 0) {
-      return data.map(rowToProduct)
+    const allProducts = await fetchProducts()
+    if (allProducts && allProducts.length > 0) {
+      const bestsellers = allProducts.filter((p) => p.isBestseller)
+      return (bestsellers.length > 0 ? bestsellers : allProducts).slice(0, limit)
     }
   } catch {}
 
   const cached = readCache() ?? []
-  return cached.slice(0, limit)
+  const bestsellers = cached.filter((p) => p.isBestseller)
+  return (bestsellers.length > 0 ? bestsellers : cached).slice(0, limit)
 }
 
 /** Fetch minimal price data for price tier counting. */
 export async function fetchPriceTiersSummary(): Promise<Array<{ id: string; price: number }>> {
   try {
-    const supabase = getSupabase()
-    const { data, error } = await supabase
-      .from('apsarah_products')
-      .select('id, price')
-
-    if (!error && data && data.length > 0) {
-      return data.map((d: any) => ({ id: d.id, price: Number(d.price || 0) }))
+    const allProducts = await fetchProducts()
+    if (allProducts && allProducts.length > 0) {
+      return allProducts.map((d) => ({ id: d.id, price: Number(d.price || 0) }))
     }
   } catch {}
 
@@ -232,19 +224,14 @@ export async function fetchPriceTiersSummary(): Promise<Array<{ id: string; pric
 /** Fetch light product summaries for cart drawer recommendations. */
 export async function fetchCartRecommendations(limit = 3): Promise<Product[]> {
   try {
-    const supabase = getSupabase()
-    const { data, error } = await supabase
-      .from('apsarah_products')
-      .select('id, name, slug, price, old_price, discount_percent, images, sizes')
-      .limit(limit + 3)
-
-    if (!error && data && data.length > 0) {
-      return data.map(rowToProduct)
+    const allProducts = await fetchProducts()
+    if (allProducts && allProducts.length > 0) {
+      return allProducts.slice(0, limit)
     }
   } catch {}
 
   const cached = readCache() ?? []
-  return cached.slice(0, limit + 3)
+  return cached.slice(0, limit)
 }
 
 /** Fetch single product by slug (deduplicated per request via React cache). */

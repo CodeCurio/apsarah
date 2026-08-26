@@ -1134,11 +1134,14 @@ body {
 
 .mostLovedGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 4 * 24px) / 5);
   gap: 24px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
 }
 
 .mostLovedGrid::-webkit-scrollbar {
@@ -1151,6 +1154,7 @@ body {
   flex-direction: column;
   text-decoration: none;
   color: inherit;
+  scroll-snap-align: start;
 }
 
 .mostLovedImageArch {
@@ -1179,8 +1183,8 @@ body {
 
 .mostLovedBadge {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  bottom: 14px;
+  left: 14px;
   z-index: 30;
   padding: 5px 11px;
   border-radius: 50px;
@@ -1189,7 +1193,7 @@ body {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 12px rgba(143, 16, 32, 0.35);
+  box-shadow: 0 4px 12px rgba(143, 16, 32, 0.45);
   pointer-events: none;
 }
 
@@ -1278,17 +1282,50 @@ body {
 
 @media (max-width: 1200px) {
   .mostLovedGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-columns: calc((100% - 2 * 20px) / 3);
+    gap: 20px;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  .mostLovedSection {
+    padding: 50px 18px;
+  }
+  .mostLovedHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .mostLovedHeader h2 {
+    font-size: 34px;
+    margin-bottom: 4px;
+    line-height: 1.1;
+  }
+  .mostLovedDesc {
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+  .mostLovedControls {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid rgba(226, 212, 199, 0.6);
+  }
+  .mostLovedViewAll {
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 0;
+  }
   .mostLovedGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: calc((100% - 14px) / 2);
     gap: 14px;
   }
   .mostLovedTitle {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 

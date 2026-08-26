@@ -21,8 +21,16 @@ export function MostLovedSection() {
   const { isInWishlist, toggleWishlist } = useWishlist()
 
   useEffect(() => {
-    fetchFeaturedProducts(6).then((data) => {
-      setProducts(data)
+    fetchFeaturedProducts(15).then((data) => {
+      if (data && data.length > 0) {
+        setProducts(data)
+      } else {
+        fetchProducts().then((all) => {
+          if (all && all.length > 0) {
+            setProducts(all.slice(0, 15))
+          }
+        })
+      }
     })
   }, [])
 
