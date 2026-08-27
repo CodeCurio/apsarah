@@ -139,7 +139,7 @@ let inFlightFetchPromise: Promise<Product[]> | null = null
 let memoryCache: { products: Product[]; timestamp: number } | null = null
 const MEMORY_CACHE_TTL_MS = 60 * 1000 // 1 minute in-memory cache
 
-/** Fetch all products from Supabase/API dynamically with fast caching. */
+/** Fetch all products dynamically with ultra-fast multi-tier caching (Memory + LocalStorage + Edge API + Supabase). */
 export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
   const now = Date.now()
   if (!forceRefresh && memoryCache && now - memoryCache.timestamp < MEMORY_CACHE_TTL_MS) {
@@ -152,7 +152,27 @@ export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
 
   inFlightFetchPromise = (async () => {
     try {
-      // 1. Direct Supabase query (Ultra fast on both server and client)
+      // 1. Browser Client Fetch (Fast Edge Route with browser/CDN cache)
+      if (typeof window !== 'undefined') {
+        try {
+          const res = await fetch('/api/products', {
+            cache: forceRefresh ? 'no-store' : 'default',
+          })
+          if (res.ok) {
+            const json = await res.json()
+            if (json.products && Array.isArray(json.products) && json.products.length > 0) {
+              const products = json.products.map(rowToProduct)
+              memoryCache = { products, timestamp: Date.now() }
+              writeCache(products)
+              return products
+            }
+          }
+        } catch {
+          // Fallback to direct Supabase or local cache
+        }
+      }
+
+      // 2. Direct Supabase query (Ultra fast on server or browser fallback)
       const supabase = getSupabase()
       const { data, error } = await supabase
         .from('apsarah_products')
@@ -164,20 +184,6 @@ export async function fetchProducts(forceRefresh = false): Promise<Product[]> {
         memoryCache = { products, timestamp: Date.now() }
         writeCache(products)
         return products
-      }
-
-      // 2. Client-side fallback to API route if direct query failed in browser
-      if (typeof window !== 'undefined') {
-        const res = await fetch('/api/admin/products').catch(() => null)
-        if (res && res.ok) {
-          const json = await res.json()
-          if (json.products && json.products.length > 0) {
-            const products = json.products.map(rowToProduct)
-            memoryCache = { products, timestamp: Date.now() }
-            writeCache(products)
-            return products
-          }
-        }
       }
 
       throw new Error(error?.message || 'No DB data returned')

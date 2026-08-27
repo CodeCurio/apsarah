@@ -62,14 +62,21 @@ export const priceTiers: PriceTier[] = [
   },
 ]
 
-export function ShopByPrice() {
-  const [products, setProducts] = useState<Array<{ id: string; price: number }>>([])
+export function ShopByPrice({ initialProducts = [] }: { initialProducts?: Array<{ id: string; price: number }> }) {
+  const [products, setProducts] = useState<Array<{ id: string; price: number }>>(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      return initialProducts
+    }
+    return []
+  })
 
   useEffect(() => {
-    fetchPriceTiersSummary().then((data) => {
-      if (data && data.length > 0) setProducts(data)
-    })
-  }, [])
+    if (products.length === 0) {
+      fetchPriceTiersSummary().then((data) => {
+        if (data && data.length > 0) setProducts(data)
+      })
+    }
+  }, [products.length])
 
   const getCountForTier = (tier: PriceTier) => {
     if (!products.length) return null

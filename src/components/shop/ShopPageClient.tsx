@@ -158,12 +158,13 @@ function ProductCardSkeleton() {
   )
 }
 
-export function ShopPageClient() {
+export function ShopPageClient({ initialProducts = [] }: { initialProducts?: Product[] }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   
   const [products, setProducts] = useState<Product[]>(() => {
+    if (initialProducts && initialProducts.length > 0) return initialProducts
     if (typeof window !== 'undefined') {
       const cached = readCache()
       if (cached && cached.length > 0) return cached
@@ -172,6 +173,7 @@ export function ShopPageClient() {
   })
   
   const [loading, setLoading] = useState<boolean>(() => {
+    if (initialProducts && initialProducts.length > 0) return false
     if (typeof window !== 'undefined') {
       const cached = readCache()
       return !(cached && cached.length > 0)
@@ -184,13 +186,17 @@ export function ShopPageClient() {
   const [lastSearchParamsStr, setLastSearchParamsStr] = useState<string>(() => searchParams?.toString() || '')
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      if (data && data.length > 0) {
-        setProducts(data)
-      }
+    if (products.length === 0) {
+      fetchProducts().then((data) => {
+        if (data && data.length > 0) {
+          setProducts(data)
+        }
+        setLoading(false)
+      })
+    } else {
       setLoading(false)
-    })
-  }, [])
+    }
+  }, [products.length])
 
   // ── Filter States ──────────────────────────────────────────────────────────
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {

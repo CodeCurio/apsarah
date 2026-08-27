@@ -75,16 +75,14 @@ export function ProductCard({ product: prod }: ProductCardProps) {
     >
       {/* ── Image Area ── */}
       <div className="bibaCardImg relative overflow-hidden">
-        {/* All images stacked, only current visible */}
-        {prod.images.map((src, i) => (
-          <img
-            key={src + i}
-            src={src}
-            alt={prod.name}
-            loading={i === 0 ? 'eager' : 'lazy'}
-            className={`bibaCardImgSlide ${i === currentImg ? 'bibaCardImgActive' : ''}`}
-          />
-        ))}
+        {/* Primary and active slideshow image */}
+        <img
+          src={prod.images[currentImg] || prod.images[0] || '/assets/logo.png'}
+          alt={prod.name}
+          loading="lazy"
+          decoding="async"
+          className="bibaCardImgSlide bibaCardImgActive"
+        />
 
         {/* Sale Badge — top left */}
         {prod.discountPercent > 0 && (

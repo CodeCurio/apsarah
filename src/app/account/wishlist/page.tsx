@@ -4,13 +4,27 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Heart, ArrowLeft, Loader2, Trash2 } from 'lucide-react'
 import { useWishlist } from '@/context/WishlistContext'
-import { Product, fetchProducts } from '@/lib/products-store'
+import { Product, fetchProducts, readCache } from '@/lib/products-store'
 import { ProductCard } from '@/components/shop/ProductCard'
 
 export default function WishlistPage() {
   const { wishlistIds, wishlistCount, toggleWishlist } = useWishlist()
-  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [wishlistProducts, setWishlistProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      if (cached && cached.length > 0) {
+        return cached.filter((p) => wishlistIds.includes(p.id))
+      }
+    }
+    return []
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      return !(cached && cached.length > 0)
+    }
+    return true
+  })
 
   useEffect(() => {
     fetchProducts().then((all) => {

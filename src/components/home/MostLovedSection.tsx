@@ -6,14 +6,18 @@ import { ArrowRight, ChevronLeft, ChevronRight, Heart, Star } from 'lucide-react
 import { fetchFeaturedProducts, fetchProducts, Product, readCache } from '@/lib/products-store'
 import { useWishlist } from '@/context/WishlistContext'
 
-export function MostLovedSection() {
+export function MostLovedSection({ initialProducts = [] }: { initialProducts?: Product[] }) {
   const trackRef = useRef<HTMLDivElement>(null)
   const [products, setProducts] = useState<Product[]>(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      const featured = initialProducts.filter((p) => p.isBestseller)
+      return (featured.length > 0 ? featured : initialProducts).slice(0, 15)
+    }
     if (typeof window !== 'undefined') {
       const cached = readCache()
       if (cached && cached.length > 0) {
         const featured = cached.filter((p) => p.isBestseller)
-        return (featured.length > 0 ? featured : cached).slice(0, 6)
+        return (featured.length > 0 ? featured : cached).slice(0, 15)
       }
     }
     return []
@@ -21,18 +25,20 @@ export function MostLovedSection() {
   const { isInWishlist, toggleWishlist } = useWishlist()
 
   useEffect(() => {
-    fetchFeaturedProducts(15).then((data) => {
-      if (data && data.length > 0) {
-        setProducts(data)
-      } else {
-        fetchProducts().then((all) => {
-          if (all && all.length > 0) {
-            setProducts(all.slice(0, 15))
-          }
-        })
-      }
-    })
-  }, [])
+    if (products.length === 0) {
+      fetchFeaturedProducts(15).then((data) => {
+        if (data && data.length > 0) {
+          setProducts(data)
+        } else {
+          fetchProducts().then((all) => {
+            if (all && all.length > 0) {
+              setProducts(all.slice(0, 15))
+            }
+          })
+        }
+      })
+    }
+  }, [products.length])
 
   const scrollTrack = (direction: 'left' | 'right') => {
     if (trackRef.current) {

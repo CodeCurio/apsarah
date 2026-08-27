@@ -4,22 +4,38 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search, Loader2 } from 'lucide-react'
 import { ProductCard } from '@/components/shop/ProductCard'
-import { Product, fetchProducts } from '@/lib/products-store'
+import { Product, fetchProducts, readCache } from '@/lib/products-store'
 
 function SearchContent() {
   const searchParams = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
 
   const [query, setQuery] = useState(initialQuery)
-  const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [allProducts, setAllProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      if (cached && cached.length > 0) return cached
+    }
+    return []
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      return !(cached && cached.length > 0)
+    }
+    return true
+  })
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      setAllProducts(data)
+    if (allProducts.length === 0) {
+      fetchProducts().then((data) => {
+        setAllProducts(data)
+        setLoading(false)
+      })
+    } else {
       setLoading(false)
-    })
-  }, [])
+    }
+  }, [allProducts.length])
 
   const filtered = allProducts.filter((p) => {
     if (!query.trim()) return false

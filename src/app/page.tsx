@@ -5,7 +5,13 @@ import { BestsellerSection } from '@/components/home/BestsellerSection'
 import { OfferCarousel } from '@/components/home/OfferCarousel'
 import { ShopByPrice } from '@/components/home/ShopByPrice'
 
-export default function Home() {
+import { fetchProducts } from '@/lib/products-store'
+
+export const revalidate = 60 // Revalidate home page every 60 seconds
+
+export default async function Home() {
+  const initialProducts = await fetchProducts().catch(() => [])
+
   return (
     <main className="relative min-h-screen bg-[#fffaf5]">
       {/* 1. Hero Carousel Banners */}
@@ -15,16 +21,16 @@ export default function Home() {
       <CategoryShowcase />
 
       {/* 3. Most Loved Products Rail */}
-      <MostLovedSection />
+      <MostLovedSection initialProducts={initialProducts} />
 
       {/* 4. Bestseller Showcase Grid with Category Filter Tabs */}
-      <BestsellerSection />
+      <BestsellerSection initialProducts={initialProducts} />
 
       {/* 5. Campaign & Offer Carousel */}
       <OfferCarousel />
 
       {/* 6. Shop By Price */}
-      <ShopByPrice />
+      <ShopByPrice initialProducts={initialProducts} />
     </main>
   )
 }

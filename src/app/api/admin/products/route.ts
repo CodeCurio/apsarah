@@ -148,8 +148,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Database Save Failed: ${error.message}` }, { status: 500 })
     }
 
-    revalidatePath('/')
-    revalidatePath('/shop')
+    revalidatePath('/', 'page')
+    revalidatePath('/shop', 'page')
 
     return NextResponse.json({ success: true, product: data }, { status: 201 })
   } catch (err: any) {
@@ -212,10 +212,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: `Database Update Failed: ${error.message}` }, { status: 500 })
     }
 
-    revalidatePath('/')
-    revalidatePath('/shop')
+    revalidatePath('/', 'page')
+    revalidatePath('/shop', 'page')
     if (data?.slug) {
-      revalidatePath(`/products/${data.slug}`)
+      revalidatePath(`/products/${data.slug}`, 'page')
     }
 
     return NextResponse.json({ success: true, product: data })
@@ -243,8 +243,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: `Database Delete Failed: ${error.message}` }, { status: 500 })
     }
 
-    revalidatePath('/')
-    revalidatePath('/shop')
+    revalidatePath('/', 'page')
+    revalidatePath('/shop', 'page')
 
     return NextResponse.json({ success: true, deletedId: id })
   } catch (err: any) {

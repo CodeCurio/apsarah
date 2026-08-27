@@ -16,8 +16,11 @@ const TABS = [
   'Dresses',
 ]
 
-export function BestsellerSection() {
+export function BestsellerSection({ initialProducts = [] }: { initialProducts?: Product[] }) {
   const [products, setProducts] = useState<Product[]>(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      return initialProducts
+    }
     if (typeof window !== 'undefined') {
       const cached = readCache()
       if (cached && cached.length > 0) {
@@ -26,17 +29,21 @@ export function BestsellerSection() {
     }
     return []
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !(initialProducts && initialProducts.length > 0))
   const [activeTab, setActiveTab] = useState('All Bestsellers')
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      if (data && data.length > 0) {
-        setProducts(data)
-      }
+    if (products.length === 0) {
+      fetchProducts().then((data) => {
+        if (data && data.length > 0) {
+          setProducts(data)
+        }
+        setLoading(false)
+      })
+    } else {
       setLoading(false)
-    })
-  }, [])
+    }
+  }, [products.length])
 
   // Filter products by Bestseller and selected tab
   const displayedProducts = useMemo(() => {
