@@ -37,7 +37,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     id: 'cat-kurtas-tops',
     name: 'Kurtas & Tops',
     slug: 'kurtas-tops',
-    image: '/assets/mustard-yellow-geometric-printed-kurta-set-1.webp',
+    image: '/assets/kurti.png',
     subtitle: 'TIMELESS & VERSATILE',
     description: 'Everyday straight kurtas, festive embellished kurtis, A-line tunics, and contemporary tops.',
     subcategories: [
@@ -86,7 +86,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     id: 'cat-coord-sets',
     name: 'Co-ord Sets',
     slug: 'co-ord-sets',
-    image: '/assets/off-white-copper-leaf-handpainted-coord-set-1.webp',
+    image: '/assets/co-ordset.png',
     subtitle: 'MATCHED PERFECTION',
     description: 'Effortless printed tunic sets, velvet co-ords, and modern Indian two-piece outfits.',
     subcategories: [
@@ -101,7 +101,7 @@ export const MASTER_CATEGORIES: PrimaryCategory[] = [
     id: 'cat-dresses',
     name: 'Dresses',
     slug: 'dresses',
-    image: '/assets/olive-green-pleated-anarkali-kurta-set-1.webp',
+    image: '/assets/dresses.png',
     subtitle: 'FESTIVE & FUSION',
     description: 'Statement gowns, printed slip dresses, and flared fusion silhouettes designed for memorable moments.',
     subcategories: [

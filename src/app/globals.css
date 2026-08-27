@@ -866,7 +866,7 @@ body {
 .apsCategoryCard {
   --category-color: #781625;
   position: relative;
-  height: 365px;
+  height: 520px;
   display: block;
   overflow: hidden;
   border-radius: 22px;
@@ -1004,6 +1004,10 @@ body {
 @media (max-width: 1000px) {
   .apsCategoryGrid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .apsCategoryCard {
+    height: 460px;
   }
 }
 
@@ -1028,7 +1032,7 @@ body {
     gap: 10px;
   }
   .apsCategoryCard {
-    height: 260px;
+    height: 270px;
     border-radius: 15px;
   }
   .apsCategoryInfo {
