@@ -109,6 +109,20 @@ async function processImages(images: string[], supabase: any): Promise<string[]>
   return processed
 }
 
+async function processColors(colors: any[], supabase: any): Promise<any[]> {
+  if (!Array.isArray(colors)) return []
+  const processed: any[] = []
+  for (const c of colors) {
+    if (!c) continue
+    const colorObj = { ...c }
+    if (Array.isArray(colorObj.images)) {
+      colorObj.images = await processImages(colorObj.images, supabase)
+    }
+    processed.push(colorObj)
+  }
+  return processed
+}
+
 // POST /api/admin/products (Create Product)
 export async function POST(request: Request) {
   try {
@@ -116,8 +130,9 @@ export async function POST(request: Request) {
     const supabase = getAdminClient()
     const row = toDbRow(body)
 
-    // Process images to replace any base64 string with Supabase Storage public URL
+    // Process images & color galleries to replace any base64 string with Supabase Storage public URL
     row.images = await processImages(row.images, supabase)
+    row.colors = await processColors(row.colors, supabase)
 
     // Check if slug exists in DB, append random suffix if conflict
     const { data: existingSlug } = await supabase
@@ -176,7 +191,9 @@ export async function PUT(request: Request) {
       updates.images = await processImages(body.images, supabase)
     }
     if (body.sizes !== undefined) updates.sizes = body.sizes
-    if (body.colors !== undefined) updates.colors = body.colors
+    if (body.colors !== undefined) {
+      updates.colors = await processColors(body.colors, supabase)
+    }
     if (body.fabric !== undefined) updates.fabric = body.fabric
     if (body.fit !== undefined) updates.fit = body.fit
     if (body.pattern !== undefined) updates.pattern = body.pattern
