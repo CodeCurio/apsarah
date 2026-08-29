@@ -408,18 +408,9 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) {
-      alert('Please enter a Product Title')
-      return
-    }
 
     if (!originalProduct?.id) {
       alert('Original product ID is missing.')
-      return
-    }
-
-    if (!price || sellingPriceNum <= 0) {
-      alert('Please enter a valid Selling Price')
       return
     }
 
@@ -430,17 +421,12 @@ export default function EditProductPage() {
       })
     })
 
-    if (allImages.length === 0) {
-      alert('Please add at least one photo for this product.')
-      return
-    }
-
     let activeSizes = isSaree
-      ? [{ size: 'Free Size', stock: Number(sareeStock) || 15 }]
+      ? [{ size: 'Free Size', stock: Number(sareeStock) || 50 }]
       : sizes.filter((s) => s.enabled).map((s) => ({ size: s.size, stock: Number(s.stock) || 0 }))
 
     if (activeSizes.length === 0) {
-      activeSizes = [{ size: 'Free Size', stock: 10 }]
+      activeSizes = [{ size: 'Free Size', stock: 50 }]
     }
 
     const processedColors = colorVariants.map((c) => ({
@@ -461,15 +447,18 @@ export default function EditProductPage() {
       highlight4,
     ].filter(Boolean)
 
+    const finalName = name.trim() || 'New Designer Garment'
+    const finalSlug = slug || finalName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `product-${Date.now()}`
+
     setSaving(true)
     try {
       await updateProduct(originalProduct.id, {
-        name: name.trim(),
-        slug: slug || name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        category,
+        name: finalName,
+        slug: finalSlug,
+        category: category || 'Suit Sets',
         subCategory,
         price: sellingPriceNum,
-        oldPrice: originalPriceNum,
+        oldPrice: originalPriceNum || sellingPriceNum,
         discountPercent,
         images: allImages,
         sizes: activeSizes,
@@ -481,11 +470,11 @@ export default function EditProductPage() {
         sleeves,
         occasion,
         washCare,
-        description: description.trim(),
+        description: description.trim() || `${finalName} - Handcrafted ethnic wear tailored for timeless grace.`,
         highlights: finalHighlights,
       })
 
-      alert(`✅ Product "${name.trim()}" and its shop filter tags updated successfully! Now live on /shop!`)
+      alert(`✅ Product "${finalName}" and its shop filter tags updated successfully! Now live on /shop!`)
       router.push('/admin/products')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
@@ -566,11 +555,10 @@ export default function EditProductPage() {
             <div className="space-y-5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Product Title / Garment Name *
+                  Product Title / Garment Name
                 </label>
                 <input
                   type="text"
-                  required
                   value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-slate-900 text-sm font-bold outline-none focus:border-[#8f1020] transition-colors shadow-2xs"
@@ -579,7 +567,7 @@ export default function EditProductPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Storefront URL Slug *
+                  Storefront URL Slug
                 </label>
                 <div className="flex items-center shadow-2xs rounded-2xl overflow-hidden border border-[#e2d4c7]">
                   <span className="bg-[#FAF6F0] px-4 py-3 text-slate-500 font-mono text-xs border-r border-[#e2d4c7] shrink-0 font-medium">
@@ -587,7 +575,6 @@ export default function EditProductPage() {
                   </span>
                   <input
                     type="text"
-                    required
                     value={slug}
                     onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, ''))}
                     className="w-full bg-white px-4 py-3 font-mono text-xs text-slate-900 font-bold outline-none focus:bg-[#FAF6F0]/20 transition-colors"
@@ -597,11 +584,10 @@ export default function EditProductPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Product Description &amp; Craftmanship *
+                  Product Description &amp; Craftmanship
                 </label>
                 <textarea
                   rows={4}
-                  required
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-white border border-[#e2d4c7] rounded-2xl p-4 text-slate-800 text-xs leading-relaxed outline-none focus:border-[#8f1020] transition-colors shadow-2xs font-medium"
@@ -695,19 +681,19 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Box 3: Size Inventory */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#e2d4c7] shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#FAF6F0] flex items-center justify-center text-[#8f1020]">
-                  <Ruler className="w-4 h-4" />
+          {/* Box 3: Size Inventory (Hidden for Saree) */}
+          {!isSaree && (
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#e2d4c7] shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#FAF6F0] flex items-center justify-center text-[#8f1020]">
+                    <Ruler className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-serif font-bold text-[#2b1713]">Size Inventory &amp; Stock</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Manage quantities for available garments.</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-serif font-bold text-[#2b1713]">Size Inventory &amp; Stock</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">{isSaree ? 'Sarees are free size — edit total stock below.' : 'Manage quantities for available garments.'}</p>
-                </div>
-              </div>
-              {!isSaree && (
                 <div className="flex items-center gap-2 text-xs font-bold">
                   <span className="text-slate-400 text-[11px] font-medium">Quick Stock:</span>
                   <button
@@ -718,33 +704,8 @@ export default function EditProductPage() {
                     Set All to 10
                   </button>
                 </div>
-              )}
-            </div>
-
-            {isSaree ? (
-              <div className="flex flex-col items-center gap-5 py-4">
-                <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                    <Ruler className="w-5 h-5 text-amber-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-extrabold text-amber-900">Saree — Free Size (Standard Drape)</p>
-                    <p className="text-xs text-amber-700 mt-1">Sarees are universally free size. No individual size selection needed — just enter the total stock quantity available.</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-5 w-full">
-                  <span className="text-sm font-extrabold text-emerald-900">Total Stock (Pieces):</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={sareeStock}
-                    onChange={(e) => setSareeStock(e.target.value)}
-                    className="w-28 bg-white border border-emerald-400 rounded-xl px-4 py-2.5 font-black text-center text-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <span className="text-xs text-emerald-700 font-semibold">Will be saved as Free Size × {sareeStock || '0'} pcs</span>
-                </div>
               </div>
-            ) : (
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
                 {sizes.map((s) => (
                   <div key={s.size} className={`p-4 rounded-2xl border transition-all ${s.enabled ? 'bg-emerald-50/40 border-emerald-300 shadow-2xs' : 'bg-[#FAF6F0]/40 border-[#e2d4c7] opacity-60'}`}>
@@ -773,8 +734,8 @@ export default function EditProductPage() {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Box 4: Shop Filter Placement & Attribution */}
           <div className="bg-white rounded-3xl p-6 md:p-8 border-2 border-[#8F1020]/20 shadow-sm space-y-6 bg-gradient-to-br from-white to-[#FAF6F0]/50">
@@ -974,12 +935,12 @@ export default function EditProductPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">MRP / Original Price (₹) *</label>
-                <input type="number" required value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-sm font-bold text-slate-600 outline-none focus:border-[#8f1020] shadow-2xs" />
+                <label className="block font-bold text-slate-700 mb-1.5">MRP / Original Price (₹)</label>
+                <input type="number" value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-sm font-bold text-slate-600 outline-none focus:border-[#8f1020] shadow-2xs" />
               </div>
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Selling / Offer Price (₹) *</label>
-                <input type="number" required value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-lg font-black text-[#8f1020] outline-none focus:border-[#8f1020] shadow-2xs" />
+                <label className="block font-bold text-slate-700 mb-1.5">Selling / Offer Price (₹)</label>
+                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-lg font-black text-[#8f1020] outline-none focus:border-[#8f1020] shadow-2xs" />
               </div>
 
               <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 text-center space-y-1">
@@ -1002,7 +963,7 @@ export default function EditProductPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Primary Collection *</label>
+                <label className="block font-bold text-slate-700 mb-1.5">Primary Collection</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-[#FAF6F0]/60 border border-[#e2d4c7] rounded-2xl px-4 py-3 font-bold text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs transition-colors">
                   {MASTER_CATEGORIES.map((m) => (
                     <option key={m.id} value={m.name}>{m.name}</option>
@@ -1010,7 +971,7 @@ export default function EditProductPage() {
                 </select>
               </div>
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Subcategory *</label>
+                <label className="block font-bold text-slate-700 mb-1.5">Subcategory</label>
                 <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="w-full bg-[#FAF6F0]/60 border border-[#e2d4c7] rounded-2xl px-4 py-3 font-semibold text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs transition-colors">
                   {selectedMasterCat && selectedMasterCat.subcategories.length > 0 ? (
                     selectedMasterCat.subcategories.map((sub) => (

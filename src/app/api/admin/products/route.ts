@@ -15,7 +15,7 @@ function getAdminClient() {
 // Helper: convert JS camelCase Product object to Supabase row format
 function toDbRow(productData: any) {
   const baseId = productData.id || `prod-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`
-  let slug = (productData.slug || productData.name || '')
+  let slug = (productData.slug || productData.name || `product-${Date.now()}`)
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
@@ -25,9 +25,9 @@ function toDbRow(productData: any) {
 
   return {
     id: baseId,
-    name: productData.name,
+    name: productData.name?.trim() || 'New Ethnic Garment',
     slug,
-    category: productData.category,
+    category: productData.category?.trim() || 'Suit Sets',
     sub_category: productData.subCategory || productData.sub_category || null,
     price: Number(productData.price) || 0,
     old_price: Number(productData.oldPrice ?? productData.old_price ?? productData.price) || 0,
@@ -35,7 +35,7 @@ function toDbRow(productData: any) {
     rating: Number(productData.rating) || 4.9,
     review_count: Number(productData.reviewCount ?? productData.review_count) || 5,
     images: Array.isArray(productData.images) ? productData.images : [],
-    sizes: Array.isArray(productData.sizes) ? productData.sizes : [],
+    sizes: Array.isArray(productData.sizes) && productData.sizes.length > 0 ? productData.sizes : [{ size: 'Free Size', stock: 50 }],
     colors: Array.isArray(productData.colors) ? productData.colors : [],
     fabric: productData.fabric || '',
     fit: productData.fit || '',
@@ -50,8 +50,6 @@ function toDbRow(productData: any) {
     is_bestseller: Boolean(productData.isBestseller ?? productData.is_bestseller),
   }
 }
-
-
 
 // GET /api/admin/products (Authenticated Admin Endpoint - Fresh Data)
 export async function GET() {
@@ -115,11 +113,6 @@ async function processImages(images: string[], supabase: any): Promise<string[]>
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-
-    if (!body.name || !body.category) {
-      return NextResponse.json({ error: 'Product name and category are required' }, { status: 400 })
-    }
-
     const supabase = getAdminClient()
     const row = toDbRow(body)
 
