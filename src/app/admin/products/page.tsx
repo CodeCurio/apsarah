@@ -12,18 +12,34 @@ import {
   Check,
   Loader2,
 } from 'lucide-react'
-import { fetchProducts, deleteProduct, Product } from '@/lib/products-store'
+import { fetchProducts, deleteProduct, Product, readCache } from '@/lib/products-store'
 import { MASTER_CATEGORIES } from '@/lib/constants/categories'
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      if (cached && cached.length > 0) return cached
+    }
+    return []
+  })
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = readCache()
+      return !cached || cached.length === 0
+    }
+    return true
+  })
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      setProducts(data)
+    fetchProducts(true).then((data) => {
+      if (data && Array.isArray(data)) {
+        setProducts(data)
+      }
+      setLoading(false)
+    }).catch(() => {
       setLoading(false)
     })
   }, [])

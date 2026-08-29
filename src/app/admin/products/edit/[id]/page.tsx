@@ -20,7 +20,7 @@ import {
   Info,
   Loader2,
 } from 'lucide-react'
-import { updateProduct, fetchProducts, Product } from '@/lib/products-store'
+import { updateProduct, fetchProducts, Product, readCache } from '@/lib/products-store'
 import { MASTER_CATEGORIES } from '@/lib/constants/categories'
 
 // ─── Single Image Slot Component ──────────────────────────────────────────────
@@ -242,100 +242,111 @@ export default function EditProductPage() {
     setFn(arr.includes(val) ? arr.filter((t) => t !== val) : [...arr, val])
   }
 
-  // Load Product Data
+  // Helper: populate form fields from a product object
+  const populateProduct = (found: Product) => {
+    setOriginalProduct(found)
+    setName(found.name || '')
+    setSlug(found.slug || '')
+    setDescription(found.description || '')
+    setCategory(found.category || 'Suit Sets')
+    setSubCategory(found.subCategory || '')
+    setPrice((found.price || 0).toString())
+    setOldPrice((found.oldPrice || 0).toString())
+    setFabric(found.fabric || '')
+    setFit(found.fit || '')
+    setPattern(found.pattern || '')
+    setNeckline(found.neckline || '')
+    setSleeves(found.sleeves || '')
+    setOccasion(found.occasion || '')
+    setWashCare(found.washCare || 'Dry Clean Only (Recommended for Embroidery & Gold Print)')
+
+    if (found.colors && found.colors.length > 0) {
+      setColorVariants(
+        found.colors.map((c, i) => ({
+          id: `color-${i}-${Date.now()}`,
+          name: c.name || `Shade ${i + 1}`,
+          hex: c.hex || '#8f1020',
+          images: [c.images?.[0] || '', c.images?.[1] || '', c.images?.[2] || '', c.images?.[3] || ''],
+        }))
+      )
+    } else if (found.images && found.images.length > 0) {
+      setColorVariants([
+        {
+          id: 'color-default',
+          name: 'Original Variant',
+          hex: '#8f1020',
+          images: [found.images[0] || '', found.images[1] || '', found.images[2] || '', found.images[3] || ''],
+        },
+      ])
+    }
+
+    // Parse Sizes
+    if (found.sizes && found.sizes.length > 0) {
+      const isFreeSize = found.sizes.length === 1 && found.sizes[0].size === 'Free Size'
+      if (isFreeSize) {
+        setSareeStock(found.sizes[0].stock.toString())
+      } else {
+        const loadedSizes = DEFAULT_SIZES.map((d) => {
+          const match = found.sizes.find((s) => s.size === d.size)
+          if (match) return { size: d.size, enabled: true, stock: match.stock.toString() }
+          return { ...d, enabled: false }
+        })
+        setSizes(loadedSizes)
+      }
+    }
+
+    // Parse Highlights
+    const hils = found.highlights || []
+    const normalHils: string[] = []
+    hils.forEach((h) => {
+      if (h.startsWith('Set Inclusions:')) setSetInclusions(h.replace('Set Inclusions:', '').trim())
+      else if (h.startsWith('Fitting & Model Info:')) setModelSizeNote(h.replace('Fitting & Model Info:', '').trim())
+      else if (h.startsWith('Dispatch Timeline:')) setDispatchTimeline(h.replace('Dispatch Timeline:', '').trim())
+      else if (!h.startsWith('Shop Filter Keywords:')) {
+        normalHils.push(h)
+      }
+    })
+    if (normalHils[0]) setHighlight1(normalHils[0])
+    if (normalHils[1]) setHighlight2(normalHils[1])
+    if (normalHils[2]) setHighlight3(normalHils[2])
+    if (normalHils[3]) setHighlight4(normalHils[3])
+
+    const combinedText = [found.name, found.fabric, found.fit, found.pattern, found.occasion, found.description].join(' ').toLowerCase()
+    const possibleFabrics = ['Silk', 'Chanderi', 'Cotton', 'Mulmul', 'Velvet', 'Georgette', 'Chiffon', 'Pashmina', 'Organza', 'Linen', 'Banarasi', 'Raw Silk']
+    setSelectedFabricTags(possibleFabrics.filter(f => combinedText.includes(f.toLowerCase())))
+
+    const possibleStyles = ['Flared & Anarkali', 'Straight Suit', 'Sharara & Gharara', 'Lehenga Set', 'Co-ord & Tunic', 'Palazzo & Pants', 'Jacket Style', 'Drape Set']
+    setSelectedStyleTags(possibleStyles.filter(s => combinedText.includes(s.split('&')[0].trim().toLowerCase()) || combinedText.includes(s.split('/')[0].trim().toLowerCase())))
+
+    const possibleOccasions = ['Wedding & Reception', 'Festive & Puja', 'Haldi & Mehndi', 'Party & Evening', 'Casual & Everyday', 'Summer Resort', 'Winter Wear']
+    setSelectedOccasionTags(possibleOccasions.filter(o => combinedText.includes(o.split('&')[0].trim().toLowerCase()) || combinedText.includes(o.split('/')[0].trim().toLowerCase())))
+
+    const possibleWorks = ['Zari & Sequin Work', 'Gota Patti & Mirror Work', 'Floral & Botanical Print', 'Handpainted & Craft', 'Chikankari & Thread Work', 'Minimalist & Solid']
+    setSelectedWorkTags(possibleWorks.filter(w => combinedText.includes(w.split('&')[0].trim().toLowerCase()) || combinedText.includes(w.split('/')[0].trim().toLowerCase())))
+
+    setLoading(false)
+  }
+
+  // Load Product Data (Instant Cache + Background Network Refresh)
   useEffect(() => {
     if (!productId) return
+
+    // 1. Instant check from local cache
+    const cached = readCache()
+    if (cached && cached.length > 0) {
+      const found = cached.find((p) => p.id === productId || p.slug === productId)
+      if (found) {
+        populateProduct(found)
+      }
+    }
+
+    // 2. Fresh fetch in background to sync latest edits
     fetchProducts().then((all) => {
       const found = all.find((p) => p.id === productId || p.slug === productId)
       if (found) {
-        setOriginalProduct(found)
-        setName(found.name || '')
-        setSlug(found.slug || '')
-        setDescription(found.description || '')
-        setCategory(found.category || 'Suit Sets')
-        setSubCategory(found.subCategory || '')
-        setPrice((found.price || 0).toString())
-        setOldPrice((found.oldPrice || 0).toString())
-        setFabric(found.fabric || '')
-        setFit(found.fit || '')
-        setPattern(found.pattern || '')
-        setNeckline(found.neckline || '')
-        setSleeves(found.sleeves || '')
-        setOccasion(found.occasion || '')
-        setWashCare(found.washCare || 'Dry Clean Only (Recommended for Embroidery & Gold Print)')
-
-        if (found.colors && found.colors.length > 0) {
-          setColorVariants(
-            found.colors.map((c, i) => ({
-              id: `color-${i}-${Date.now()}`,
-              name: c.name || `Shade ${i + 1}`,
-              hex: c.hex || '#8f1020',
-              images: [c.images?.[0] || '', c.images?.[1] || '', c.images?.[2] || '', c.images?.[3] || ''],
-            }))
-          )
-        } else if (found.images && found.images.length > 0) {
-          setColorVariants([
-            {
-              id: 'color-default',
-              name: 'Original Variant',
-              hex: '#8f1020',
-              images: [found.images[0] || '', found.images[1] || '', found.images[2] || '', found.images[3] || ''],
-            },
-          ])
-        }
-
-        // Parse Sizes
-        if (found.sizes && found.sizes.length > 0) {
-          // Handle Free Size (Saree) product
-          const isFreeSize = found.sizes.length === 1 && found.sizes[0].size === 'Free Size'
-          if (isFreeSize) {
-            setSareeStock(found.sizes[0].stock.toString())
-          } else {
-            const loadedSizes = DEFAULT_SIZES.map((d) => {
-              const match = found.sizes.find((s) => s.size === d.size)
-              if (match) return { size: d.size, enabled: true, stock: match.stock.toString() }
-              return { ...d, enabled: false }
-            })
-            setSizes(loadedSizes)
-          }
-        }
-
-        // Parse Highlights & existing keywords
-        const hils = found.highlights || []
-        const normalHils: string[] = []
-        hils.forEach((h) => {
-          if (h.startsWith('Set Inclusions:')) setSetInclusions(h.replace('Set Inclusions:', '').trim())
-          else if (h.startsWith('Fitting & Model Info:')) setModelSizeNote(h.replace('Fitting & Model Info:', '').trim())
-          else if (h.startsWith('Dispatch Timeline:')) setDispatchTimeline(h.replace('Dispatch Timeline:', '').trim())
-          else if (h.startsWith('Shop Filter Keywords:')) {
-            // keywords present
-          } else {
-            normalHils.push(h)
-          }
-        })
-        if (normalHils[0]) setHighlight1(normalHils[0])
-        if (normalHils[1]) setHighlight2(normalHils[1])
-        if (normalHils[2]) setHighlight3(normalHils[2])
-        if (normalHils[3]) setHighlight4(normalHils[3])
-
-        // Smart guess initial filter tags based on text fields
-        const combinedText = [found.name, found.fabric, found.fit, found.pattern, found.occasion, found.description].join(' ').toLowerCase()
-        
-        const possibleFabrics = ['Silk', 'Chanderi', 'Cotton', 'Mulmul', 'Velvet', 'Georgette', 'Chiffon', 'Pashmina', 'Organza', 'Linen', 'Banarasi', 'Raw Silk']
-        setSelectedFabricTags(possibleFabrics.filter(f => combinedText.includes(f.toLowerCase())))
-
-        const possibleStyles = ['Flared & Anarkali', 'Straight Suit', 'Sharara & Gharara', 'Lehenga Set', 'Co-ord & Tunic', 'Palazzo & Pants', 'Jacket Style', 'Drape Set']
-        setSelectedStyleTags(possibleStyles.filter(s => combinedText.includes(s.split('&')[0].trim().toLowerCase()) || combinedText.includes(s.split('/')[0].trim().toLowerCase())))
-
-        const possibleOccasions = ['Wedding & Reception', 'Festive & Puja', 'Haldi & Mehndi', 'Party & Evening', 'Casual & Everyday', 'Summer Resort', 'Winter Wear']
-        setSelectedOccasionTags(possibleOccasions.filter(o => combinedText.includes(o.split('&')[0].trim().toLowerCase()) || combinedText.includes(o.split('/')[0].trim().toLowerCase())))
-
-        const possibleWorks = ['Zari & Sequin Work', 'Gota Patti & Mirror Work', 'Floral & Botanical Print', 'Handpainted & Craft', 'Chikankari & Thread Work', 'Minimalist & Solid']
-        setSelectedWorkTags(possibleWorks.filter(w => combinedText.includes(w.split('&')[0].trim().toLowerCase()) || combinedText.includes(w.split('/')[0].trim().toLowerCase())))
-
-        setLoading(false)
-      } else {
-        alert('Product not found in database or catalog cache.')
+        populateProduct(found)
+      } else if (!cached || cached.length === 0) {
+        alert('Product not found in database.')
         router.push('/admin/products')
       }
     })
