@@ -47,7 +47,7 @@ export const campaignOffers: CampaignOffer[] = [
     description: "Heritage-inspired dressing created for modern confidence and effortless elegance.",
     offer: "JUST LANDED",
     button: "SHOP NEW IN",
-    image: "/assets/img-3.jpeg",
+    image: "/assets/img-3.webp",
     theme: "plum",
   },
   {

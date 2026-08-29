@@ -210,16 +210,14 @@ export default function AddProductPage() {
   // 1. Basic Details
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
-  const [description, setDescription] = useState(
-    'Experience the grace of authentic Indian craftsmanship with this exquisitely hand-embroidered ensemble. Tailored for pure festive opulence and day-long comfort.'
-  )
+  const [description, setDescription] = useState('')
 
   // 2. Organization & Pricing
   const [category, setCategory] = useState<string>(MASTER_CATEGORIES[0].name)
   const [subCategory, setSubCategory] = useState<string>(MASTER_CATEGORIES[0].subcategories[0] || '')
   const [dispatchTimeline, setDispatchTimeline] = useState('Ready to Ship (Dispatched within 24-48 Hours)')
-  const [price, setPrice] = useState('3300')
-  const [oldPrice, setOldPrice] = useState('5500')
+  const [price, setPrice] = useState('')
+  const [oldPrice, setOldPrice] = useState('')
 
   // 3. Color Variants
   const [colorVariants, setColorVariants] = useState<ColorVariantForm[]>([
@@ -233,28 +231,31 @@ export default function AddProductPage() {
 
   // 4. Size Inventory
   const [sizes, setSizes] = useState<SizeItem[]>(DEFAULT_SIZES)
+  const [sareeStock, setSareeStock] = useState('15')
+
+  const isSaree = category.toLowerCase().includes('saree')
 
   // 5. Specifications & Highlights
-  const [setInclusions, setSetInclusions] = useState('3-Piece Set: 1 Embroidered Kurta, 1 Churidar Pant, 1 Organza Dupatta')
-  const [fabric, setFabric] = useState('Pure Chanderi Silk with Soft Cotton Lining')
-  const [fit, setFit] = useState('Flared Anarkali Silhouette')
-  const [pattern, setPattern] = useState('Intricate Zari, Sequin & Gota Patti Work')
-  const [neckline, setNeckline] = useState('Sweetheart Neckline')
-  const [sleeves, setSleeves] = useState('Three-Quarter Sleeves with Embroidered Cuffs')
-  const [occasion, setOccasion] = useState('Festive, Wedding Guest & Celebrations')
-  const [washCare, setWashCare] = useState('Dry Clean Only (Recommended for Embroidery Protection)')
-  const [modelSizeNote, setModelSizeNote] = useState('Model is 5\'8" wearing Size S (Kurta Length: 46 inches)')
+  const [setInclusions, setSetInclusions] = useState('')
+  const [fabric, setFabric] = useState('')
+  const [fit, setFit] = useState('')
+  const [pattern, setPattern] = useState('')
+  const [neckline, setNeckline] = useState('')
+  const [sleeves, setSleeves] = useState('')
+  const [occasion, setOccasion] = useState('')
+  const [washCare, setWashCare] = useState('Dry Clean Only')
+  const [modelSizeNote, setModelSizeNote] = useState('')
 
-  const [highlight1, setHighlight1] = useState('Crafted in rich, breathable pure silk with skin-friendly lining')
-  const [highlight2, setHighlight2] = useState('Hand-finished zari and sequin motifs across bodice and borders')
-  const [highlight3, setHighlight3] = useState('Includes styled pants with comfortable elasticated waist')
-  const [highlight4, setHighlight4] = useState('Easy 7-Day Exchange & Returns Guaranteed')
+  const [highlight1, setHighlight1] = useState('')
+  const [highlight2, setHighlight2] = useState('')
+  const [highlight3, setHighlight3] = useState('')
+  const [highlight4, setHighlight4] = useState('')
 
   // 6. Shop Filter Attribution & Search Tags
-  const [selectedFabricTags, setSelectedFabricTags] = useState<string[]>(['Silk', 'Chanderi'])
-  const [selectedStyleTags, setSelectedStyleTags] = useState<string[]>(['Flared & Anarkali'])
-  const [selectedOccasionTags, setSelectedOccasionTags] = useState<string[]>(['Wedding & Reception', 'Festive & Puja'])
-  const [selectedWorkTags, setSelectedWorkTags] = useState<string[]>(['Zari & Sequin Work'])
+  const [selectedFabricTags, setSelectedFabricTags] = useState<string[]>([])
+  const [selectedStyleTags, setSelectedStyleTags] = useState<string[]>([])
+  const [selectedOccasionTags, setSelectedOccasionTags] = useState<string[]>([])
+  const [selectedWorkTags, setSelectedWorkTags] = useState<string[]>([])
   const [selectedColorFamily, setSelectedColorFamily] = useState<string>('Red, Wine & Maroon')
 
   const toggleTag = (arr: string[], val: string, setFn: React.Dispatch<React.SetStateAction<string[]>>) => {
@@ -327,7 +328,7 @@ export default function AddProductPage() {
 
   // Size Actions
   const handleQuickStock = (val: string) => {
-    setSizes((prev) => prev.map((s) => (s.enabled ? { ...s, stock: val } : s)))
+    setSizes((prev) => prev.map((s) => ({ ...s, enabled: true, stock: val })))
   }
 
   const toggleSizeEnabled = (sizeName: string) => {
@@ -353,8 +354,20 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Only 4 Truly Mandatory Fields
     if (!name.trim()) {
-      alert('Please enter a Product Title')
+      alert('Please enter Product Title (Title is required)')
+      return
+    }
+
+    if (!category.trim()) {
+      alert('Please select a Category')
+      return
+    }
+
+    if (!price || sellingPriceNum <= 0) {
+      alert('Please enter a valid Selling Price (Price is required)')
       return
     }
 
@@ -366,26 +379,28 @@ export default function AddProductPage() {
     })
 
     if (allImages.length === 0) {
-      alert('Please add at least one product photo in your Color Variants gallery.')
+      alert('Please upload at least one product photo in the gallery.')
       return
     }
 
-    const activeSizes = sizes
-      .filter((s) => s.enabled)
-      .map((s) => ({ size: s.size, stock: Number(s.stock) || 0 }))
+    // Sizes handling: Saree gets Free Size automatically, others get enabled sizes or default Free Size
+    let activeSizes = isSaree
+      ? [{ size: 'Free Size', stock: Number(sareeStock) || 15 }]
+      : sizes
+          .filter((s) => s.enabled)
+          .map((s) => ({ size: s.size, stock: Number(s.stock) || 0 }))
 
     if (activeSizes.length === 0) {
-      alert('Please enable at least one available size (e.g. S, M, L or Unstitched).')
-      return
+      activeSizes = [{ size: 'Free Size', stock: 10 }]
     }
 
     const processedColors = colorVariants.map((c) => ({
       name: c.name.trim() || 'Standard',
-      hex: c.hex || '#000000',
+      hex: c.hex || '#8f1020',
       images: c.images.filter(Boolean),
     }))
 
-    const filterKeywordTagLine = `Shop Filter Keywords: ${[...selectedFabricTags, ...selectedStyleTags, ...selectedOccasionTags, ...selectedWorkTags, selectedColorFamily].join(', ')}`
+    const filterKeywordTagLine = `Shop Filter Keywords: ${[...selectedFabricTags, ...selectedStyleTags, ...selectedOccasionTags, ...selectedWorkTags, selectedColorFamily].filter(Boolean).join(', ')}`
 
     const finalHighlights = [
       setInclusions ? `Set Inclusions: ${setInclusions}` : '',
@@ -402,9 +417,9 @@ export default function AddProductPage() {
     try {
       const created = await addProduct({
         name: name.trim(),
-        slug: slug || name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: slug || name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         category,
-        subCategory,
+        subCategory: subCategory || undefined,
         price: sellingPriceNum,
         oldPrice: originalPriceNum,
         discountPercent,
@@ -413,22 +428,22 @@ export default function AddProductPage() {
         images: allImages,
         sizes: activeSizes,
         colors: processedColors,
-        fabric,
-        fit,
-        pattern,
-        neckline,
-        sleeves,
-        occasion,
-        washCare,
-        description: description.trim(),
+        fabric: fabric.trim(),
+        fit: fit.trim(),
+        pattern: pattern.trim(),
+        neckline: neckline.trim(),
+        sleeves: sleeves.trim(),
+        occasion: occasion.trim(),
+        washCare: washCare.trim(),
+        description: description.trim() || `${name.trim()} - Handcrafted ethnic wear tailored for timeless grace.`,
         highlights: finalHighlights,
       })
 
-      alert(`✅ Product "${created.name}" published successfully with ${colorVariants.length} Color Variant(s)! Now live on /shop!`)
+      alert(`✅ Product "${created.name}" published successfully!`)
       router.push('/admin/products')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error occurred'
-      alert(`❌ Failed to publish product: ${msg}\n\nPlease check your Supabase table schema.`)
+      alert(`❌ Failed to publish product: ${msg}\n\nPlease check your Supabase connection.`)
     } finally {
       setSaving(false)
     }
@@ -510,7 +525,7 @@ export default function AddProductPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Storefront URL Slug *
+                  Storefront URL Slug <span className="text-slate-400 font-normal normal-case tracking-normal">(auto-filled)</span>
                 </label>
                 <div className="flex items-center shadow-2xs rounded-2xl overflow-hidden border border-[#e2d4c7]">
                   <span className="bg-[#FAF6F0] px-4 py-3 text-slate-500 font-mono text-xs border-r border-[#e2d4c7] shrink-0 font-medium">
@@ -518,7 +533,6 @@ export default function AddProductPage() {
                   </span>
                   <input
                     type="text"
-                    required
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                     className="w-full bg-white px-4 py-3 text-slate-800 font-mono text-xs outline-none focus:border-[#8f1020]"
@@ -528,11 +542,10 @@ export default function AddProductPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Garment Silhouette Description *
+                  Garment Description <span className="text-slate-400 font-normal normal-case tracking-normal">(optional)</span>
                 </label>
                 <textarea
                   rows={4}
-                  required
                   placeholder="Detail the fabric drape, artisanal embroidery motifs, elegance, and comfort of the ensemble..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -655,65 +668,92 @@ export default function AddProductPage() {
                 <div>
                   <h2 className="text-lg font-serif font-bold text-[#2b1713]">Size Inventory &amp; Stock Availability</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Enable standard fashion sizes or unstitched dress materials.
+                    {isSaree ? 'Sarees are free size — enter total stock below.' : 'Enable standard fashion sizes or unstitched dress materials.'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-slate-400 text-[11px] font-medium">Quick Stock Action:</span>
-                <button
-                  type="button"
-                  onClick={() => handleQuickStock('10')}
-                  className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6DC] text-[#2B1713] border border-[#e2d4c7] rounded-xl transition-colors cursor-pointer text-xs"
-                >
-                  Set All to 10
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickStock('25')}
-                  className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6DC] text-[#2B1713] border border-[#e2d4c7] rounded-xl transition-colors cursor-pointer text-xs"
-                >
-                  Set All to 25
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
-              {sizes.map((s) => (
-                <div
-                  key={s.size}
-                  className={`p-4 rounded-2xl border transition-all ${
-                    s.enabled
-                      ? 'bg-emerald-50/40 border-emerald-300 shadow-2xs'
-                      : 'bg-[#FAF6F0]/40 border-[#e2d4c7] opacity-60'
-                  }`}
-                >
-                  <label className="flex items-center gap-2.5 cursor-pointer font-extrabold text-slate-900 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={s.enabled}
-                      onChange={() => toggleSizeEnabled(s.size)}
-                      className="rounded text-[#8f1020] focus:ring-[#8f1020] w-4 h-4 cursor-pointer"
-                    />
-                    <span>{s.size}</span>
-                  </label>
-
-                  {s.enabled && (
-                    <div className="mt-3 pt-2.5 border-t border-emerald-200/60 flex items-center justify-between gap-1 text-xs">
-                      <span className="font-bold text-emerald-800 text-[11px]">Stock Pcs:</span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={s.stock}
-                        onChange={(e) => updateSizeStock(s.size, e.target.value)}
-                        className="w-16 bg-white border border-emerald-400 rounded-lg px-2 py-1 font-extrabold text-center text-slate-900 outline-none focus:ring-1 focus:ring-[#8f1020]"
-                      />
-                    </div>
-                  )}
+              {!isSaree && (
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <span className="text-slate-400 text-[11px] font-medium">Quick Stock Action:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStock('10')}
+                    className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6DC] text-[#2B1713] border border-[#e2d4c7] rounded-xl transition-colors cursor-pointer text-xs"
+                  >
+                    Set All to 10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStock('25')}
+                    className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6DC] text-[#2B1713] border border-[#e2d4c7] rounded-xl transition-colors cursor-pointer text-xs"
+                  >
+                    Set All to 25
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
+
+            {isSaree ? (
+              <div className="flex flex-col items-center gap-5 py-4">
+                <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <Ruler className="w-5 h-5 text-amber-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-amber-900">Saree — Free Size (Standard Drape)</p>
+                    <p className="text-xs text-amber-700 mt-1">Sarees are universally free size. No individual size selection needed — just enter the total stock quantity available.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-5 w-full">
+                  <span className="text-sm font-extrabold text-emerald-900">Total Stock (Pieces):</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={sareeStock}
+                    onChange={(e) => setSareeStock(e.target.value)}
+                    className="w-28 bg-white border border-emerald-400 rounded-xl px-4 py-2.5 font-black text-center text-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <span className="text-xs text-emerald-700 font-semibold">Will be saved as Free Size × {sareeStock || '0'} pcs</span>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+                {sizes.map((s) => (
+                  <div
+                    key={s.size}
+                    className={`p-4 rounded-2xl border transition-all ${
+                      s.enabled
+                        ? 'bg-emerald-50/40 border-emerald-300 shadow-2xs'
+                        : 'bg-[#FAF6F0]/40 border-[#e2d4c7] opacity-60'
+                    }`}
+                  >
+                    <label className="flex items-center gap-2.5 cursor-pointer font-extrabold text-slate-900 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={s.enabled}
+                        onChange={() => toggleSizeEnabled(s.size)}
+                        className="rounded text-[#8f1020] focus:ring-[#8f1020] w-4 h-4 cursor-pointer"
+                      />
+                      <span>{s.size}</span>
+                    </label>
+
+                    {s.enabled && (
+                      <div className="mt-3 pt-2.5 border-t border-emerald-200/60 flex items-center justify-between gap-1 text-xs">
+                        <span className="font-bold text-emerald-800 text-[11px]">Stock Pcs:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={s.stock}
+                          onChange={(e) => updateSizeStock(s.size, e.target.value)}
+                          className="w-16 bg-white border border-emerald-400 rounded-lg px-2 py-1 font-extrabold text-center text-slate-900 outline-none focus:ring-1 focus:ring-[#8f1020]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Box 4: Shop Filter Placement & Attribution */}
@@ -940,10 +980,9 @@ export default function AddProductPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">MRP / Original Price (₹) *</label>
+                <label className="block font-bold text-slate-700 mb-1.5">MRP / Original Price (₹) <span className="text-slate-400 font-normal">(optional)</span></label>
                 <input
                   type="number"
-                  required
                   value={oldPrice}
                   onChange={(e) => setOldPrice(e.target.value)}
                   className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-sm font-bold text-slate-600 outline-none focus:border-[#8f1020] shadow-2xs"
@@ -955,7 +994,6 @@ export default function AddProductPage() {
                 <label className="block font-bold text-slate-700 mb-1.5">Selling / Offer Price (₹) *</label>
                 <input
                   type="number"
-                  required
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   className="w-full bg-white border border-[#e2d4c7] rounded-2xl px-4 py-3 text-lg font-black text-[#8f1020] outline-none focus:border-[#8f1020] shadow-2xs"
@@ -1044,12 +1082,12 @@ export default function AddProductPage() {
           {/* Panel 3: Ethnic Specifications & Craftsmanship */}
           <div className="bg-white rounded-3xl p-6 border border-[#e2d4c7] shadow-xs space-y-5">
             <h3 className="text-sm font-serif font-bold text-[#2B1713] uppercase tracking-wider border-b border-slate-100 pb-3">
-              Ethnic Specifications
+              Ethnic Specifications <span className="text-slate-400 font-normal normal-case tracking-normal text-[11px]">(all optional)</span>
             </h3>
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Set Inclusions (Items in Box) *</label>
+                <label className="block font-bold text-slate-700 mb-1">Set Inclusions (Items in Box)</label>
                 <input
                   type="text"
                   value={setInclusions}
@@ -1060,7 +1098,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Fabric &amp; Lining *</label>
+                <label className="block font-bold text-slate-700 mb-1">Fabric &amp; Lining</label>
                 <input
                   type="text"
                   value={fabric}
@@ -1070,7 +1108,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Silhouette / Fit Type *</label>
+                <label className="block font-bold text-slate-700 mb-1">Silhouette / Fit Type</label>
                 <input
                   type="text"
                   value={fit}
@@ -1080,7 +1118,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Embroidery &amp; Craft Work *</label>
+                <label className="block font-bold text-slate-700 mb-1">Embroidery &amp; Craft Work</label>
                 <input
                   type="text"
                   value={pattern}
@@ -1090,7 +1128,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Neckline Styling *</label>
+                <label className="block font-bold text-slate-700 mb-1">Neckline Styling</label>
                 <input
                   type="text"
                   value={neckline}
@@ -1100,7 +1138,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Sleeve Design *</label>
+                <label className="block font-bold text-slate-700 mb-1">Sleeve Design</label>
                 <input
                   type="text"
                   value={sleeves}
@@ -1110,7 +1148,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Recommended Occasion *</label>
+                <label className="block font-bold text-slate-700 mb-1">Recommended Occasion</label>
                 <input
                   type="text"
                   value={occasion}
@@ -1120,12 +1158,13 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Wash Care Recommendation *</label>
+                <label className="block font-bold text-slate-700 mb-1">Wash Care Recommendation</label>
                 <select
                   value={washCare}
                   onChange={(e) => setWashCare(e.target.value)}
                   className="w-full bg-white border border-[#e2d4c7] rounded-xl px-3.5 py-2.5 font-medium text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs"
                 >
+                  <option value="Dry Clean Only">Dry Clean Only</option>
                   <option value="Dry Clean Only (Recommended for Embroidery & Gold Print)">Dry Clean Only (Recommended for Embroidery)</option>
                   <option value="Gentle Hand Wash Separately in Cold Water">Gentle Hand Wash Separately in Cold Water</option>
                   <option value="Machine Wash inside-out on Gentle Cycle">Machine Wash inside-out on Gentle Cycle</option>
@@ -1133,7 +1172,7 @@ export default function AddProductPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Model Fitting Note *</label>
+                <label className="block font-bold text-slate-700 mb-1">Model Fitting Note</label>
                 <input
                   type="text"
                   value={modelSizeNote}
@@ -1143,6 +1182,7 @@ export default function AddProductPage() {
               </div>
             </div>
           </div>
+
 
           {/* Quick Publish Sticky Bottom Card for Right Bar */}
           <div className="bg-[#FAF6F0] p-5 rounded-3xl border border-[#e2d4c7] space-y-3">

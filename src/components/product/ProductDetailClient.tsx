@@ -66,7 +66,7 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
-  const [selectedImage, setSelectedImage] = useState(product.images[0] || '/assets/img-2.jpeg')
+  const [selectedImage, setSelectedImage] = useState(product.images[0] || '/assets/img-2.webp')
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes.find((s) => s.stock > 0)?.size || 'M')
   const [selectedColor, setSelectedColor] = useState<string>(product.colors[0]?.name || '')
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({ transform: 'scale(1)', transformOrigin: 'center' })
@@ -505,43 +505,64 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             )}
 
             {/* Size Selector */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#2B1713]">Select Size</span>
-                <button
-                  type="button"
-                  onClick={() => setSizeGuideOpen(true)}
-                  className="text-xs font-extrabold text-[#8F1020] underline flex items-center gap-1 cursor-pointer hover:text-rose-900"
-                >
-                  <Ruler className="w-3.5 h-3.5" /> Size Guide & Measurements
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
-                {product.sizes.map((s) => {
-                  const isAvailable = s.stock > 0
-                  const isSelected = selectedSize === s.size
-
-                  return (
+            {(() => {
+              const isSareeProduct =
+                product.category?.toLowerCase().includes('saree') ||
+                (product.sizes.length === 1 &&
+                  (product.sizes[0].size === 'Free Size' || product.sizes[0].size === 'Standard'))
+              return isSareeProduct ? (
+                <div className="space-y-2 pt-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#2B1713]">Sizing</span>
+                  <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                      <Ruler className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-extrabold text-amber-900">Free Size — Standard Drape</p>
+                      <p className="text-xs text-amber-700 mt-0.5">This saree is universally free size and fits all.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#2B1713]">Select Size</span>
                     <button
-                      key={s.size}
                       type="button"
-                      disabled={!isAvailable}
-                      onClick={() => setSelectedSize(s.size)}
-                      className={`py-3 rounded-xl text-xs font-bold transition-all border text-center relative cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#8F1020] text-white border-[#8F1020] shadow-md scale-105'
-                          : isAvailable
-                          ? 'bg-white text-[#2B1713] border-[#E2D4C7] hover:border-[#8F1020] shadow-2xs'
-                          : 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50 cursor-not-allowed'
-                      }`}
+                      onClick={() => setSizeGuideOpen(true)}
+                      className="text-xs font-extrabold text-[#8F1020] underline flex items-center gap-1 cursor-pointer hover:text-rose-900"
                     >
-                      <span>{s.size}</span>
+                      <Ruler className="w-3.5 h-3.5" /> Size Guide & Measurements
                     </button>
-                  )
-                })}
-              </div>
-            </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                    {product.sizes.map((s) => {
+                      const isAvailable = s.stock > 0
+                      const isSelected = selectedSize === s.size
+
+                      return (
+                        <button
+                          key={s.size}
+                          type="button"
+                          disabled={!isAvailable}
+                          onClick={() => setSelectedSize(s.size)}
+                          className={`py-3 rounded-xl text-xs font-bold transition-all border text-center relative cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#8F1020] text-white border-[#8F1020] shadow-md scale-105'
+                              : isAvailable
+                              ? 'bg-white text-[#2B1713] border-[#E2D4C7] hover:border-[#8F1020] shadow-2xs'
+                              : 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <span>{s.size}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Stock Level Warning Badges */}
             {isSelectedSizeAvailable && remainingStock > 0 && remainingStock <= 5 && (

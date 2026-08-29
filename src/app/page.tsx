@@ -7,7 +7,7 @@ import { ShopByPrice } from '@/components/home/ShopByPrice'
 
 import { fetchProducts } from '@/lib/products-store'
 
-export const revalidate = 60 // Revalidate home page every 60 seconds
+export const dynamic = 'force-dynamic'
 
 export default async function Home() {
   const initialProducts = await fetchProducts().catch(() => [])

@@ -212,6 +212,9 @@ export default function EditProductPage() {
     { id: 'color-1', name: 'Standard Shade', hex: '#8f1020', images: ['', '', '', ''] },
   ])
   const [sizes, setSizes] = useState<SizeItem[]>(DEFAULT_SIZES)
+  const [sareeStock, setSareeStock] = useState('15')
+
+  const isSaree = category.toLowerCase().includes('saree')
 
   const [setInclusions, setSetInclusions] = useState('3-Piece Set: 1 Kurta, 1 Pant, 1 Dupatta')
   const [fabric, setFabric] = useState('')
@@ -283,12 +286,18 @@ export default function EditProductPage() {
 
         // Parse Sizes
         if (found.sizes && found.sizes.length > 0) {
-          const loadedSizes = DEFAULT_SIZES.map((d) => {
-            const match = found.sizes.find((s) => s.size === d.size)
-            if (match) return { size: d.size, enabled: true, stock: match.stock.toString() }
-            return { ...d, enabled: false }
-          })
-          setSizes(loadedSizes)
+          // Handle Free Size (Saree) product
+          const isFreeSize = found.sizes.length === 1 && found.sizes[0].size === 'Free Size'
+          if (isFreeSize) {
+            setSareeStock(found.sizes[0].stock.toString())
+          } else {
+            const loadedSizes = DEFAULT_SIZES.map((d) => {
+              const match = found.sizes.find((s) => s.size === d.size)
+              if (match) return { size: d.size, enabled: true, stock: match.stock.toString() }
+              return { ...d, enabled: false }
+            })
+            setSizes(loadedSizes)
+          }
         }
 
         // Parse Highlights & existing keywords
@@ -399,10 +408,18 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim()) {
+      alert('Please enter a Product Title')
+      return
+    }
 
     if (!originalProduct?.id) {
       alert('Original product ID is missing.')
+      return
+    }
+
+    if (!price || sellingPriceNum <= 0) {
+      alert('Please enter a valid Selling Price')
       return
     }
 
@@ -418,10 +435,12 @@ export default function EditProductPage() {
       return
     }
 
-    const activeSizes = sizes.filter((s) => s.enabled).map((s) => ({ size: s.size, stock: Number(s.stock) || 0 }))
+    let activeSizes = isSaree
+      ? [{ size: 'Free Size', stock: Number(sareeStock) || 15 }]
+      : sizes.filter((s) => s.enabled).map((s) => ({ size: s.size, stock: Number(s.stock) || 0 }))
+
     if (activeSizes.length === 0) {
-      alert('Please enable at least one size.')
-      return
+      activeSizes = [{ size: 'Free Size', stock: 10 }]
     }
 
     const processedColors = colorVariants.map((c) => ({
@@ -685,49 +704,76 @@ export default function EditProductPage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-serif font-bold text-[#2b1713]">Size Inventory &amp; Stock</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">Manage quantities for available garments.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{isSaree ? 'Sarees are free size — edit total stock below.' : 'Manage quantities for available garments.'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-slate-400 text-[11px] font-medium">Quick Stock:</span>
-                <button
-                  type="button"
-                  onClick={() => handleQuickStock('10')}
-                  className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6DC] text-[#2B1713] border border-[#e2d4c7] rounded-xl transition-colors cursor-pointer text-xs"
-                >
-                  Set All to 10
-                </button>
-              </div>
+              {!isSaree && (
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <span className="text-slate-400 text-[11px] font-medium">Quick Stock:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickStock('10')}
+                    className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6DC] text-[#2B1713] border border-[#e2d4c7] rounded-xl transition-colors cursor-pointer text-xs"
+                  >
+                    Set All to 10
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
-              {sizes.map((s) => (
-                <div key={s.size} className={`p-4 rounded-2xl border transition-all ${s.enabled ? 'bg-emerald-50/40 border-emerald-300 shadow-2xs' : 'bg-[#FAF6F0]/40 border-[#e2d4c7] opacity-60'}`}>
-                  <label className="flex items-center gap-2.5 cursor-pointer font-extrabold text-slate-900 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={s.enabled}
-                      onChange={() => toggleSizeEnabled(s.size)}
-                      className="rounded text-[#8f1020] focus:ring-[#8f1020] w-4 h-4 cursor-pointer"
-                    />
-                    <span>{s.size}</span>
-                  </label>
-
-                  {s.enabled && (
-                    <div className="mt-3 pt-2.5 border-t border-emerald-200/60 flex items-center justify-between gap-1 text-xs">
-                      <span className="font-bold text-emerald-800 text-[11px]">Stock Pcs:</span>
+            {isSaree ? (
+              <div className="flex flex-col items-center gap-5 py-4">
+                <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <Ruler className="w-5 h-5 text-amber-700" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-extrabold text-amber-900">Saree — Free Size (Standard Drape)</p>
+                    <p className="text-xs text-amber-700 mt-1">Sarees are universally free size. No individual size selection needed — just enter the total stock quantity available.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-5 w-full">
+                  <span className="text-sm font-extrabold text-emerald-900">Total Stock (Pieces):</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={sareeStock}
+                    onChange={(e) => setSareeStock(e.target.value)}
+                    className="w-28 bg-white border border-emerald-400 rounded-xl px-4 py-2.5 font-black text-center text-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <span className="text-xs text-emerald-700 font-semibold">Will be saved as Free Size × {sareeStock || '0'} pcs</span>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+                {sizes.map((s) => (
+                  <div key={s.size} className={`p-4 rounded-2xl border transition-all ${s.enabled ? 'bg-emerald-50/40 border-emerald-300 shadow-2xs' : 'bg-[#FAF6F0]/40 border-[#e2d4c7] opacity-60'}`}>
+                    <label className="flex items-center gap-2.5 cursor-pointer font-extrabold text-slate-900 text-sm">
                       <input
-                        type="number"
-                        min={0}
-                        value={s.stock}
-                        onChange={(e) => updateSizeStock(s.size, e.target.value)}
-                        className="w-16 bg-white border border-emerald-400 rounded-lg px-2 py-1 font-extrabold text-center text-slate-900 outline-none focus:ring-1 focus:ring-[#8f1020]"
+                        type="checkbox"
+                        checked={s.enabled}
+                        onChange={() => toggleSizeEnabled(s.size)}
+                        className="rounded text-[#8f1020] focus:ring-[#8f1020] w-4 h-4 cursor-pointer"
                       />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                      <span>{s.size}</span>
+                    </label>
+
+                    {s.enabled && (
+                      <div className="mt-3 pt-2.5 border-t border-emerald-200/60 flex items-center justify-between gap-1 text-xs">
+                        <span className="font-bold text-emerald-800 text-[11px]">Stock Pcs:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={s.stock}
+                          onChange={(e) => updateSizeStock(s.size, e.target.value)}
+                          className="w-16 bg-white border border-emerald-400 rounded-lg px-2 py-1 font-extrabold text-center text-slate-900 outline-none focus:ring-1 focus:ring-[#8f1020]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Box 4: Shop Filter Placement & Attribution */}

@@ -57,8 +57,10 @@ export default function AboutPage() {
           <div className="lg:col-span-6 relative">
             <div className="relative z-10 rounded-3xl overflow-hidden border border-[#E2D4C7] shadow-xl aspect-[4/5] bg-[#EAE0D5]">
               <img
-                src="/assets/banner design 2.png"
+                src="/assets/banner design 2.webp"
                 alt="Apsarah Craftsmanship Heritage"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-6 text-white">

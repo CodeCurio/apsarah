@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import { ShopPageClient } from '@/components/shop/ShopPageClient'
 import { fetchProducts } from '@/lib/products-store'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Shop Ethnic Wear | Apsarah',

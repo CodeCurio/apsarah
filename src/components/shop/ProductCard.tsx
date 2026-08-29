@@ -39,13 +39,19 @@ export function ProductCard({ product: prod }: ProductCardProps) {
     setCurrentImg(0)
   }, [])
 
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     if (isHovered) {
-      startSlide()
+      timeoutRef.current = setTimeout(() => {
+        startSlide()
+      }, 350)
     } else {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
       stopSlide()
     }
     return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [isHovered, startSlide, stopSlide])

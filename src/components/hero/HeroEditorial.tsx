@@ -5,63 +5,83 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export const heroBanners = [
   {
-    desktopImage: '/assets/banner design 2.png',
-    mobileImage: '/assets/Mobile-banner-1.png',
+    desktopImage: '/assets/banner design 2.webp',
+    mobileImage: '/assets/Mobile-banner-1.webp',
     alt: 'Apsarah Festive Collection Banner 1',
   },
   {
-    desktopImage: '/assets/banner design 3.png',
-    mobileImage: '/assets/Mobile-banner-2.png',
+    desktopImage: '/assets/banner design 3.webp',
+    mobileImage: '/assets/Mobile-banner-2.webp',
     alt: 'Apsarah Festive Collection Banner 2',
   },
   {
-    desktopImage: '/assets/banner design 4.png',
-    mobileImage: '/assets/Mobile-banner-3.png',
+    desktopImage: '/assets/banner design 4.webp',
+    mobileImage: '/assets/Mobile-banner-3.webp',
     alt: 'Apsarah Festive Collection Banner 3',
   },
 ]
 
 export function HeroEditorial() {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [loadedSlides, setLoadedSlides] = useState<number[]>([0])
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroBanners.length)
+      setCurrentSlide((prev) => {
+        const next = (prev + 1) % heroBanners.length
+        setLoadedSlides((loaded) => (loaded.includes(next) ? loaded : [...loaded, next]))
+        return next
+      })
     }, 4500)
     return () => clearInterval(timer)
   }, [])
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroBanners.length)
+    setCurrentSlide((prev) => {
+      const next = (prev + 1) % heroBanners.length
+      setLoadedSlides((loaded) => (loaded.includes(next) ? loaded : [...loaded, next]))
+      return next
+    })
   }
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev === 0 ? heroBanners.length - 1 : prev - 1))
+    setCurrentSlide((prev) => {
+      const prevIdx = prev === 0 ? heroBanners.length - 1 : prev - 1
+      setLoadedSlides((loaded) => (loaded.includes(prevIdx) ? loaded : [...loaded, prevIdx]))
+      return prevIdx
+    })
   }
 
   return (
     <section className="relative w-full overflow-hidden bg-[#25100c]">
       {/* Responsive Aspect Ratio: 1024/1536 (2:3) on mobile, 2087/753 on desktop */}
       <div className="relative w-full aspect-[1024/1536] md:aspect-[2087/753]">
-        {heroBanners.map((banner, idx) => (
-          <div
-            key={banner.desktopImage}
-            className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-              idx === currentSlide
-                ? 'opacity-100 z-10 pointer-events-auto'
-                : 'opacity-0 z-0 pointer-events-none'
-            }`}
-          >
-            <picture className="w-full h-full block">
-              <source media="(max-width: 768px)" srcSet={banner.mobileImage} />
-              <img
-                src={banner.desktopImage}
-                alt={banner.alt}
-                className="w-full h-full object-cover select-none"
-              />
-            </picture>
-          </div>
-        ))}
+        {heroBanners.map((banner, idx) => {
+          const shouldLoad = loadedSlides.includes(idx) || Math.abs(currentSlide - idx) <= 1
+          return (
+            <div
+              key={banner.desktopImage}
+              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                idx === currentSlide
+                  ? 'opacity-100 z-10 pointer-events-auto'
+                  : 'opacity-0 z-0 pointer-events-none'
+              }`}
+            >
+              {shouldLoad && (
+                <picture className="w-full h-full block">
+                  <source media="(max-width: 768px)" srcSet={banner.mobileImage} />
+                  <img
+                    src={banner.desktopImage}
+                    alt={banner.alt}
+                    loading={idx === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    className="w-full h-full object-cover select-none"
+                  />
+                </picture>
+              )}
+            </div>
+          )
+        })}
 
         {/* Minimal Navigation Arrows */}
         <button
