@@ -13,9 +13,10 @@ import {
   Loader2,
 } from 'lucide-react'
 import { fetchProducts, deleteProduct, Product, readCache } from '@/lib/products-store'
-import { MASTER_CATEGORIES } from '@/lib/constants/categories'
+import { MASTER_CATEGORIES, PrimaryCategory } from '@/lib/constants/categories'
 
 export default function AdminProductsPage() {
+  const [categoriesList, setCategoriesList] = useState<PrimaryCategory[]>(MASTER_CATEGORIES)
   const [products, setProducts] = useState<Product[]>(() => {
     if (typeof window !== 'undefined') {
       const cached = readCache()
@@ -42,6 +43,15 @@ export default function AdminProductsPage() {
     }).catch(() => {
       setLoading(false)
     })
+
+    fetch('/api/admin/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.tree) && data.tree.length > 0) {
+          setCategoriesList(data.tree)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const handleDelete = async (id: string) => {
@@ -104,7 +114,7 @@ export default function AdminProductsPage() {
             className="bg-[#faf5f0] border border-[#e2d4c7] rounded-xl px-3 py-2 text-xs font-medium text-[#2b1713] outline-none"
           >
             <option value="All">All Categories</option>
-            {MASTER_CATEGORIES.map((cat) => (
+            {categoriesList.map((cat) => (
               <option key={cat.id} value={cat.name}>
                 {cat.name}
               </option>

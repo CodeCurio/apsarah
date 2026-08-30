@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { navItems } from './nav-data'
+import { navItems, buildNavItems, NavItem } from './nav-data'
 import { MegaMenu } from './MegaMenu'
 import { MobileDrawer } from './MobileDrawer'
 import { AuthForm } from '@/components/auth/AuthModal'
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 
 export function Navbar() {
+  const [currentNavItems, setCurrentNavItems] = useState<NavItem[]>(navItems)
   const [activeMega, setActiveMega] = useState<string | null>(null)
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
@@ -36,6 +37,24 @@ export function Navbar() {
   const { wishlistCount } = useWishlist()
   const { user, profile, isAdmin, signOut } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    const loadDynamicNav = () => {
+      fetch('/api/admin/categories')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && Array.isArray(data.tree) && data.tree.length > 0) {
+            setCurrentNavItems(buildNavItems(data.tree))
+          }
+        })
+        .catch(() => {})
+    }
+    loadDynamicNav()
+    window.addEventListener('categories-updated', loadDynamicNav)
+    return () => {
+      window.removeEventListener('categories-updated', loadDynamicNav)
+    }
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -71,7 +90,7 @@ export function Navbar() {
     }
   }
 
-  const currentMegaData = navItems.find((item) => item.label === activeMega)?.mega
+  const currentMegaData = currentNavItems.find((item) => item.label === activeMega)?.mega
 
   return (
     <>
@@ -209,7 +228,7 @@ export function Navbar() {
         {/* 3. Navigation Links Row */}
         <div className="premiumNavigation">
           <nav className="premiumNavInner">
-            {navItems.map((item) => (
+            {currentNavItems.map((item) => (
               <Link
                 key={item.label}
                 href={`/shop?category=${encodeURIComponent(item.mega?.title || item.label)}`}
@@ -248,6 +267,7 @@ export function Navbar() {
       <MobileDrawer
         isOpen={mobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}
+        items={currentNavItems}
       />
 
       {/* 6. Auth Modal Popup */}

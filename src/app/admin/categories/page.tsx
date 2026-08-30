@@ -14,8 +14,8 @@ import {
   Search,
   AlertCircle,
   HelpCircle,
+  Loader2,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { MASTER_CATEGORIES } from '@/lib/constants/categories'
 
@@ -45,26 +45,27 @@ export default function AdminCategoriesPage() {
 
   // Inline Subcategory input per primary category ID
   const [subInputs, setSubInputs] = useState<Record<string, string>>({})
+  const [addingSubId, setAddingSubId] = useState<string | null>(null)
 
   // Inline rename state: record ID -> new text
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
 
-  // 1. Fetch categories from Supabase (with fallback to MASTER_CATEGORIES)
+  // 1. Fetch categories from Supabase via server API
   const loadCategories = async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name', { ascending: true })
+      const res = await fetch('/api/admin/categories', {
+        method: 'GET',
+        cache: 'no-store',
+      })
+      const json = await res.json()
 
       let list: CategoryRecord[] = []
-      if (!error && data && data.length > 0) {
-        list = data as CategoryRecord[]
+      if (res.ok && json.categories && Array.isArray(json.categories) && json.categories.length > 0) {
+        list = json.categories as CategoryRecord[]
       } else {
-        // Fallback seed
+        // Fallback seed from MASTER_CATEGORIES
         MASTER_CATEGORIES.forEach((cat) => {
           list.push({
             id: cat.id,
@@ -85,13 +86,14 @@ export default function AdminCategoriesPage() {
       }
       setDbCategories(list)
 
-      // Auto expand all primary categories by default so user sees everything clearly
+      // Auto expand all primary categories by default
       const exp: Record<string, boolean> = {}
       list.filter((c) => !c.parent_id).forEach((c) => {
         exp[c.id] = true
       })
       setExpanded(exp)
-    } catch {
+    } catch (err: any) {
+      console.error('Error loading categories:', err)
       toastError('Could not load categories from database')
     } finally {
       setLoading(false)
@@ -105,33 +107,36 @@ export default function AdminCategoriesPage() {
   const primaryCats = dbCategories.filter((c) => !c.parent_id)
   const getSubcats = (parentId: string) => dbCategories.filter((c) => c.parent_id === parentId)
 
-  // Quick Create Primary Category
+  // Quick Create Primary Category (Saved directly to Supabase DB)
   const handleCreatePrimary = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newPrimaryName.trim()) return
     setCreatingPrimary(true)
 
-    const slug = newPrimaryName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const trimmedName = newPrimaryName.trim()
+    const slug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('categories')
-        .insert({
-          name: newPrimaryName.trim(),
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
           slug,
           description: newPrimaryDesc.trim() || null,
           is_coming_soon: newPrimarySoon,
           parent_id: null,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (error) throw error
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        throw new Error(json.error || 'Failed to create category in database')
+      }
 
-      const created = (data as CategoryRecord) || {
+      const created: CategoryRecord = json.category || {
         id: `local-p-${Date.now()}`,
-        name: newPrimaryName.trim(),
+        name: trimmedName,
         slug,
         description: newPrimaryDesc.trim() || null,
         is_coming_soon: newPrimarySoon,
@@ -142,65 +147,57 @@ export default function AdminCategoriesPage() {
       setNewPrimaryName('')
       setNewPrimaryDesc('')
       setNewPrimarySoon(false)
-      toastSuccess(`Category "${created.name}" added`)
-    } catch {
-      // Local fallback
-      const created: CategoryRecord = {
-        id: `local-p-${Date.now()}`,
-        name: newPrimaryName.trim(),
-        slug,
-        description: newPrimaryDesc.trim() || null,
-        is_coming_soon: newPrimarySoon,
-      }
-      setDbCategories((prev) => [...prev, created])
-      setExpanded((prev) => ({ ...prev, [created.id]: true }))
-      setNewPrimaryName('')
-      setNewPrimaryDesc('')
-      setNewPrimarySoon(false)
-      toastSuccess(`Category "${created.name}" added`)
+      toastSuccess(`Category "${created.name}" saved to database!`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('categories-updated'))
+    } catch (err: any) {
+      console.error('Create category error:', err)
+      toastError(err.message || 'Could not save category to database')
     } finally {
       setCreatingPrimary(false)
     }
   }
 
-  // Quick Add Subcategory under a specific parent
+  // Quick Add Subcategory under a specific parent (Saved directly to Supabase DB)
   const handleAddSubcategory = async (parentId: string, e: React.FormEvent) => {
     e.preventDefault()
     const subName = subInputs[parentId]?.trim()
     if (!subName) return
 
+    setAddingSubId(parentId)
     const slug = subName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('categories')
-        .insert({
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           name: subName,
           slug,
           parent_id: parentId,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      const created = (data as CategoryRecord) || {
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        throw new Error(json.error || 'Failed to create subcategory in database')
+      }
+
+      const created: CategoryRecord = json.category || {
         id: `local-s-${Date.now()}`,
         name: subName,
         slug,
         parent_id: parentId,
       }
+
       setDbCategories((prev) => [...prev, created])
       setSubInputs((prev) => ({ ...prev, [parentId]: '' }))
-      toastSuccess(`Added subcategory "${subName}"`)
-    } catch {
-      const created: CategoryRecord = {
-        id: `local-s-${Date.now()}`,
-        name: subName,
-        slug,
-        parent_id: parentId,
-      }
-      setDbCategories((prev) => [...prev, created])
-      setSubInputs((prev) => ({ ...prev, [parentId]: '' }))
-      toastSuccess(`Added subcategory "${subName}"`)
+      toastSuccess(`Subcategory "${subName}" saved to database!`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('categories-updated'))
+    } catch (err: any) {
+      console.error('Add subcategory error:', err)
+      toastError(err.message || 'Could not save subcategory to database')
+    } finally {
+      setAddingSubId(null)
     }
   }
 
@@ -210,13 +207,19 @@ export default function AdminCategoriesPage() {
     setDbCategories((prev) =>
       prev.map((item) => (item.id === id ? { ...item, is_coming_soon: newVal } : item))
     )
-    toastSuccess(`Updated status to ${newVal ? 'Coming Soon' : 'Active'}`)
 
     try {
-      const supabase = createClient()
-      await supabase.from('categories').update({ is_coming_soon: newVal }).eq('id', id)
+      const res = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_coming_soon: newVal }),
+      })
+      if (!res.ok) throw new Error('Database update failed')
+      toastSuccess(`Updated status to ${newVal ? 'Coming Soon' : 'Active'}`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('categories-updated'))
     } catch {
-      // Ignore database sync issue if working locally
+      toastError('Could not update status in database')
+      loadCategories()
     }
   }
 
@@ -230,13 +233,19 @@ export default function AdminCategoriesPage() {
       prev.map((item) => (item.id === id ? { ...item, name: newName, slug: newSlug } : item))
     )
     setEditingId(null)
-    toastSuccess(`Renamed to "${newName}"`)
 
     try {
-      const supabase = createClient()
-      await supabase.from('categories').update({ name: newName, slug: newSlug }).eq('id', id)
+      const res = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: newName, slug: newSlug }),
+      })
+      if (!res.ok) throw new Error('Database rename failed')
+      toastSuccess(`Renamed to "${newName}" in database`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('categories-updated'))
     } catch {
-      // ignore
+      toastError('Could not rename in database')
+      loadCategories()
     }
   }
 
@@ -245,20 +254,24 @@ export default function AdminCategoriesPage() {
     if (
       !confirm(
         isPrimary
-          ? `Delete primary category "${name}"? This will also remove all its subcategories.`
-          : `Remove subcategory "${name}"?`
+          ? `Delete primary category "${name}"? This will permanently remove it and all its subcategories from the database.`
+          : `Remove subcategory "${name}" from database?`
       )
     )
       return
 
     setDbCategories((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id))
-    toastSuccess(`Removed "${name}"`)
 
     try {
-      const supabase = createClient()
-      await supabase.from('categories').delete().eq('id', id)
+      const res = await fetch(`/api/admin/categories?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('Database delete failed')
+      toastSuccess(`Removed "${name}" from database`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('categories-updated'))
     } catch {
-      // ignore
+      toastError('Could not delete from database')
+      loadCategories()
     }
   }
 
@@ -281,7 +294,7 @@ export default function AdminCategoriesPage() {
             Categories &amp; Subcategories
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Quickly add, rename, or structure categories for products and shop filters without clutter.
+            Manage product categories and subcategories with direct database persistence.
           </p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -296,7 +309,7 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* ── Quick Add Primary Category Bar (Zero Friction) ── */}
+      {/* ── Quick Add Primary Category Bar ── */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-2xs">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
           <Plus className="w-4 h-4 text-[#8f1020]" /> Add New Primary Category
@@ -336,9 +349,16 @@ export default function AdminCategoriesPage() {
             <button
               type="submit"
               disabled={creatingPrimary}
-              className="w-full py-2 bg-[#8f1020] hover:bg-[#7a0d1b] text-white font-bold rounded-lg transition-colors shadow-2xs cursor-pointer text-xs"
+              className="w-full py-2 bg-[#8f1020] hover:bg-[#7a0d1b] text-white font-bold rounded-lg transition-colors shadow-2xs cursor-pointer text-xs flex items-center justify-center gap-1.5"
             >
-              {creatingPrimary ? 'Adding...' : '+ Add Category'}
+              {creatingPrimary ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                '+ Add Category'
+              )}
             </button>
           </div>
         </form>
@@ -355,7 +375,10 @@ export default function AdminCategoriesPage() {
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-xs">Loading categories...</div>
+          <div className="p-8 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-[#8f1020]" />
+            <span>Loading categories from database...</span>
+          </div>
         ) : filteredPrimary.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-xs italic">
             No categories found. Add your first primary category above.
@@ -375,7 +398,7 @@ export default function AdminCategoriesPage() {
                       <button
                         type="button"
                         onClick={() => toggleExpand(cat.id)}
-                        className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
                         title={isOpen ? 'Collapse Subcategories' : 'Expand Subcategories'}
                       >
                         {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -394,14 +417,14 @@ export default function AdminCategoriesPage() {
                           <button
                             type="button"
                             onClick={() => handleSaveRename(cat.id)}
-                            className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                            className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingId(null)}
-                            className="p-1 text-rose-600 hover:bg-rose-50 rounded"
+                            className="p-1 text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -448,7 +471,7 @@ export default function AdminCategoriesPage() {
                               setEditingId(cat.id)
                               setEditText(cat.name)
                             }}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
                             title="Rename category"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -457,7 +480,7 @@ export default function AdminCategoriesPage() {
                         <button
                           type="button"
                           onClick={() => handleDelete(cat.id, cat.name, true)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
                           title="Delete Category"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -492,7 +515,7 @@ export default function AdminCategoriesPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleSaveRename(sub.id)}
-                                      className="text-emerald-600 px-1 font-bold"
+                                      className="text-emerald-600 px-1 font-bold cursor-pointer"
                                     >
                                       ✓
                                     </button>
@@ -509,7 +532,7 @@ export default function AdminCategoriesPage() {
                                         setEditingId(sub.id)
                                         setEditText(sub.name)
                                       }}
-                                      className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                                      className="p-1 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                                       title="Rename subcategory"
                                     >
                                       <Edit2 className="w-3 h-3" />
@@ -518,7 +541,7 @@ export default function AdminCategoriesPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleDelete(sub.id, sub.name, false)}
-                                    className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                                    className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                                     title="Delete subcategory"
                                   >
                                     <Trash2 className="w-3 h-3" />
@@ -546,10 +569,17 @@ export default function AdminCategoriesPage() {
                         />
                         <button
                           type="submit"
-                          disabled={!subInputs[cat.id]?.trim()}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-black disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
+                          disabled={!subInputs[cat.id]?.trim() || addingSubId === cat.id}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-black disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
                         >
-                          Add
+                          {addingSubId === cat.id ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            'Add'
+                          )}
                         </button>
                       </form>
                     </div>

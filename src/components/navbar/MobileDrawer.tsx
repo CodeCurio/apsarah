@@ -3,15 +3,16 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { navItems } from './nav-data'
+import { navItems, NavItem } from './nav-data'
 import { Search, X, ArrowRight } from 'lucide-react'
 
 interface MobileDrawerProps {
   isOpen: boolean
   onClose: () => void
+  items?: NavItem[]
 }
 
-export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
+export function MobileDrawer({ isOpen, onClose, items = navItems }: MobileDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const router = useRouter()
 
@@ -53,7 +54,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
         {/* Navigation Links */}
         <div className="mobileNav space-y-1">
-          {navItems.map((item) => (
+          {items.map((item) => (
             <Link
               key={item.label}
               href={`/shop?category=${encodeURIComponent(item.mega?.title || item.label)}`}

@@ -6,7 +6,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Filter, X, Plus, Minus, RotateCcw, Check } from 'lucide-react'
 import { Product, fetchProducts, readCache } from '@/lib/products-store'
 import { ProductCard } from '@/components/shop/ProductCard'
-import { MASTER_CATEGORIES, getCategoryAliases } from '@/lib/constants/categories'
+import { MASTER_CATEGORIES, PrimaryCategory, getCategoryAliases } from '@/lib/constants/categories'
 
 // ─── Accordion Filter Section ────────────────────────────────────────────────
 function FilterSection({
@@ -244,10 +244,23 @@ export function ShopPageClient({ initialProducts = [] }: { initialProducts?: Pro
   const [selectedPatterns, setSelectedPatterns] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<string>('featured')
 
-  // Categories list (strictly MASTER_CATEGORIES for clean, predictable storefront filters)
-  const allCategories = useMemo(() => {
-    return MASTER_CATEGORIES.map((m) => m.name)
+  const [dynamicCategories, setDynamicCategories] = useState<PrimaryCategory[]>(MASTER_CATEGORIES)
+
+  useEffect(() => {
+    fetch('/api/admin/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.tree) && data.tree.length > 0) {
+          setDynamicCategories(data.tree)
+        }
+      })
+      .catch(() => {})
   }, [])
+
+  // Categories list
+  const allCategories = useMemo(() => {
+    return dynamicCategories.map((m) => m.name)
+  }, [dynamicCategories])
 
   const priceRanges = [
     { label: 'All Prices', value: 'All' },

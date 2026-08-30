@@ -21,7 +21,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { updateProduct, fetchProducts, Product, readCache } from '@/lib/products-store'
-import { MASTER_CATEGORIES } from '@/lib/constants/categories'
+import { MASTER_CATEGORIES, PrimaryCategory } from '@/lib/constants/categories'
 
 // ─── Single Image Slot Component ──────────────────────────────────────────────
 function ImageSlot({
@@ -199,6 +199,7 @@ export default function EditProductPage() {
   const [originalProduct, setOriginalProduct] = useState<Product | null>(null)
 
   // Form states
+  const [categoriesList, setCategoriesList] = useState<PrimaryCategory[]>(MASTER_CATEGORIES)
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [description, setDescription] = useState('')
@@ -207,6 +208,17 @@ export default function EditProductPage() {
   const [dispatchTimeline, setDispatchTimeline] = useState('Ready to Ship (Dispatched within 24-48 Hours)')
   const [price, setPrice] = useState('3300')
   const [oldPrice, setOldPrice] = useState('5500')
+
+  useEffect(() => {
+    fetch('/api/admin/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.tree) && data.tree.length > 0) {
+          setCategoriesList(data.tree)
+        }
+      })
+      .catch((err) => console.warn('Could not load dynamic categories:', err))
+  }, [])
 
   const [colorVariants, setColorVariants] = useState<ColorVariantForm[]>([
     { id: 'color-1', name: 'Standard Shade', hex: '#8f1020', images: ['', '', '', ''] },
@@ -495,7 +507,7 @@ export default function EditProductPage() {
     }
   }
 
-  const selectedMasterCat = MASTER_CATEGORIES.find((m) => m.name === category)
+  const selectedMasterCat = categoriesList.find((m) => m.name === category)
 
   if (loading) {
     return (
@@ -974,19 +986,58 @@ export default function EditProductPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Primary Collection</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-[#FAF6F0]/60 border border-[#e2d4c7] rounded-2xl px-4 py-3 font-bold text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs transition-colors">
-                  {MASTER_CATEGORIES.map((m) => (
-                    <option key={m.id} value={m.name}>{m.name}</option>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700">Primary Collection</label>
+                  <Link
+                    href="/admin/categories"
+                    target="_blank"
+                    className="text-[10px] font-bold text-[#8f1020] hover:underline"
+                  >
+                    + Manage Categories
+                  </Link>
+                </div>
+                <select
+                  value={category}
+                  onChange={(e) => {
+                    const newCat = e.target.value
+                    setCategory(newCat)
+                    const found = categoriesList.find((m) => m.name === newCat)
+                    if (found && found.subcategories.length > 0) {
+                      setSubCategory(found.subcategories[0])
+                    } else {
+                      setSubCategory('General')
+                    }
+                  }}
+                  className="w-full bg-[#FAF6F0]/60 border border-[#e2d4c7] rounded-2xl px-4 py-3 font-bold text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs transition-colors"
+                >
+                  {categoriesList.map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {m.name} {m.isComingSoon ? '(Coming Soon)' : ''}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block font-bold text-slate-700 mb-1.5">Subcategory</label>
-                <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="w-full bg-[#FAF6F0]/60 border border-[#e2d4c7] rounded-2xl px-4 py-3 font-semibold text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs transition-colors">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700">Subcategory</label>
+                  <Link
+                    href="/admin/categories"
+                    target="_blank"
+                    className="text-[10px] font-bold text-[#8f1020] hover:underline"
+                  >
+                    + Manage Subcategories
+                  </Link>
+                </div>
+                <select
+                  value={subCategory}
+                  onChange={(e) => setSubCategory(e.target.value)}
+                  className="w-full bg-[#FAF6F0]/60 border border-[#e2d4c7] rounded-2xl px-4 py-3 font-semibold text-slate-800 outline-none focus:border-[#8f1020] shadow-2xs transition-colors"
+                >
                   {selectedMasterCat && selectedMasterCat.subcategories.length > 0 ? (
                     selectedMasterCat.subcategories.map((sub) => (
-                      <option key={sub} value={sub}>{sub}</option>
+                      <option key={sub} value={sub}>
+                        {sub}
+                      </option>
                     ))
                   ) : (
                     <option value="General">General</option>
