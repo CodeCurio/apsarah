@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, use } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Package, Truck, CreditCard, User, MapPin, Save, Printer, ExternalLink, Clock, CheckCircle2, AlertCircle, Mail } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Package, Truck, CreditCard, User, MapPin, Save, Printer, ExternalLink, Clock, CheckCircle2, AlertCircle, Mail, Trash2, AlertTriangle, X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { getTrackingUrl } from '@/lib/tracking-utils'
@@ -52,6 +53,7 @@ interface OrderDetail {
 
 export default function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const router = useRouter()
   const { toastSuccess, toastError } = useToast()
 
   const [order, setOrder] = useState<OrderDetail | null>(null)
@@ -67,6 +69,31 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
   const [adminNote, setAdminNote] = useState('')
   const [updating, setUpdating] = useState(false)
   const [showInvoice, setShowInvoice] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteOrder = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/admin/orders/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: id }),
+      })
+
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        throw new Error(json.error || 'Failed to delete order from database')
+      }
+
+      toastSuccess(`Order #${order?.order_number || id} has been permanently deleted from database.`)
+      router.push('/admin/orders')
+    } catch (err: any) {
+      console.error('Failed to delete order:', err)
+      toastError(err.message || 'Could not delete order from database.')
+      setDeleting(false)
+    }
+  }
 
   const fetchOrderData = () => {
     const supabase = createClient()
@@ -262,6 +289,80 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-100 animate-in fade-in zoom-in-95 duration-200 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-red-100 text-red-700 rounded-xl">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-serif font-bold text-[#2b1713]">Delete Order</h3>
+                  <p className="text-xs text-slate-500">Permanent Database Deletion</p>
+                </div>
+              </div>
+              <button
+                onClick={() => !deleting && setShowDeleteModal(false)}
+                disabled={deleting}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#e2d4c7] text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Order Number:</span>
+                <span className="font-mono font-bold text-[#8f1020]">{order.order_number}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-medium text-[#2b1713]">{order.shipping_address?.fullName || order.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total Amount:</span>
+                <span className="font-bold text-[#8f1020]">₹{order.total?.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to permanently delete this order? It will remove all items, timeline records, and the order entry itself from the Supabase database. <strong className="text-red-700">This action cannot be undone.</strong>
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteOrder}
+                disabled={deleting}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting from Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Delete Order</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -272,7 +373,7 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
           <p className="text-xs text-slate-500">Placed on {new Date(order.created_at).toLocaleString('en-IN')}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => setShowInvoice(true)}
@@ -280,6 +381,16 @@ export default function AdminOrderDetailPage({ params }: { params: Promise<{ id:
           >
             <Printer className="w-4 h-4 text-[#8f1020]" />
             <span>Print Invoice</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="px-3.5 py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Delete this order permanently"
+          >
+            <Trash2 className="w-4 h-4 text-red-600" />
+            <span>Delete Order</span>
           </button>
 
           <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
